@@ -6,7 +6,7 @@ import { log, sleep } from "@proto-kit/common";
 
 import {
   AppChain,
-  LocalTaskWorkerModule,
+  WorkerModule,
   Sequencer,
   VanillaTaskWorkerModules,
 } from "../../src";
@@ -25,7 +25,7 @@ async function main() {
 
   const sequencerClass = Sequencer.from({
     TaskQueue: BullQueue,
-    LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+    WorkerModule: WorkerModule.from(
       VanillaTaskWorkerModules.withoutSettlement()
     ),
   } satisfies MinimumWorkerModules);
@@ -40,7 +40,7 @@ async function main() {
     ...runtimeProtocolConfig,
     Sequencer: {
       TaskQueue: BullConfig,
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     },
   });
 
@@ -56,7 +56,7 @@ async function main() {
   const ready = await new Promise<boolean>((res) => {
     app
       .resolve("Sequencer")
-      .resolve("LocalTaskWorkerModule")
+      .resolve("WorkerModule")
       .containerEvents.on("ready", res);
   });
 

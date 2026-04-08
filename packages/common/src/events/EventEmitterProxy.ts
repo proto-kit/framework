@@ -42,7 +42,9 @@ export type FlattenedContainerEvents<Modules extends ModulesRecord> =
 export class EventEmitterProxy<
   Modules extends ModulesRecord,
 > extends EventEmitter<CastToEventsRecord<FlattenedContainerEvents<Modules>>> {
-  public constructor(private readonly container: ModuleContainer<Modules>) {
+  public constructor(
+    private readonly container: ModuleContainer<Modules, any>
+  ) {
     super();
     container.moduleNames.forEach((moduleName) => {
       if (container.isValidModuleName(container.definition, moduleName)) {

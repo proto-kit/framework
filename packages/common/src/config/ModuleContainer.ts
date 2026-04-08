@@ -98,6 +98,11 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
     : never;
 };
 
+export type CombinedModuleContainerConfig<
+  Modules extends ModulesRecord,
+  ContainerConfig = NoConfig,
+> = ModulesConfig<Modules> & { containerConfig?: ContainerConfig };
+
 /**
  * This type make any config partial (i.e. optional) up to the first level
  * So { Module: { a: { b: string } } }
@@ -139,9 +144,18 @@ export interface ModuleContainerLike {
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
+ *
+ * @typeParam Modules - The record of child module classes.
+ * @typeParam ContainerConfig - Optional config type for keys that belong to the
+ *   container itself (not forwarded to child modules). Defaults to NoConfig.
  */
-export class ModuleContainer<Modules extends ModulesRecord>
-  extends ConfigurableModule<ModulesConfig<Modules>>
+export class ModuleContainer<
+  Modules extends ModulesRecord,
+  ContainerConfig = NoConfig,
+>
+  extends ConfigurableModule<
+    CombinedModuleContainerConfig<Modules, ContainerConfig>
+  >
   implements ModuleContainerLike
 {
   /**
@@ -157,6 +171,14 @@ export class ModuleContainer<Modules extends ModulesRecord>
 
   public constructor(public definition: Modules) {
     super();
+  }
+
+  /**
+   * Returns the container's own configuration.
+   */
+  public get containerConfig(): ContainerConfig {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return this.config?.containerConfig as ContainerConfig;
   }
 
   /**
@@ -296,25 +318,34 @@ export class ModuleContainer<Modules extends ModulesRecord>
    * before the first resolution.
    * @param config
    */
-  public configure(config: ModulesConfig<Modules>) {
+  public configure(
+    config: CombinedModuleContainerConfig<Modules, ContainerConfig>
+  ) {
     this.config = config;
   }
 
-  public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
-    this.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      RecursivePartial<ModulesConfig<Modules>>
-    >(this.currentConfig ?? {}, config);
+  public configurePartial(
+    config: RecursivePartial<
+      CombinedModuleContainerConfig<Modules, ContainerConfig>
+    >
+  ) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.config = merge(
+      this.currentConfig ?? {},
+      config
+    ) as CombinedModuleContainerConfig<Modules, ContainerConfig>;
   }
 
   public get config() {
     return super.config;
   }
 
-  public set config(config: ModulesConfig<Modules>) {
+  public set config(
+    config: CombinedModuleContainerConfig<Modules, ContainerConfig>
+  ) {
     super.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      ModulesConfig<Modules>
+      CombinedModuleContainerConfig<Modules, ContainerConfig> | NoConfig,
+      CombinedModuleContainerConfig<Modules, ContainerConfig>
     >(this.currentConfig ?? {}, config);
   }
 
