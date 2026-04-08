@@ -9,8 +9,6 @@ export class ProxyCache implements O1Cache {
 
   debug = false;
 
-  cacheDirectory = this.realCache.cacheDirectory;
-
   public read(header: CacheHeader): Uint8Array | undefined {
     return this.realCache.read(header);
   }
