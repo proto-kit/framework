@@ -20,7 +20,7 @@ import {
   BlockProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
@@ -49,7 +49,7 @@ export async function startAppChain() {
       Database: InMemoryDatabase,
 
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         VanillaTaskWorkerModules.withoutSettlement()
       ),
 
@@ -92,13 +92,11 @@ export async function startAppChain() {
 
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       TaskQueue: {},
 
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       BlockTrigger: {},
 

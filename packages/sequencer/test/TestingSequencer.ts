@@ -4,7 +4,7 @@ import {
   BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
@@ -19,7 +19,7 @@ import { ConstantFeeStrategy } from "../src/protocol/baselayer/fees/ConstantFeeS
 export type DefaultTestingSequencerModules = {
   Database: typeof InMemoryDatabase;
   Mempool: typeof PrivateMempool;
-  LocalTaskWorkerModule: TypedClass<LocalTaskWorkerModule<any>>;
+  WorkerModule: TypedClass<WorkerModule<any>>;
   BaseLayer: typeof NoopBaseLayer;
   BatchProducerModule: typeof BatchProducerModule;
   BlockProducerModule: typeof BlockProducerModule;
@@ -36,7 +36,7 @@ export function testingSequencerModules<
   modules: AdditionalModules,
   additionalTaskWorkerModules?: AdditionalTaskWorkerModules
 ) {
-  const taskWorkerModule = LocalTaskWorkerModule.from({
+  const taskWorkerModule = WorkerModule.from({
     ...VanillaTaskWorkerModules.withoutSettlement(),
     ...additionalTaskWorkerModules,
   });
@@ -45,7 +45,7 @@ export function testingSequencerModules<
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
     BaseLayer: NoopBaseLayer,
-    LocalTaskWorkerModule: taskWorkerModule,
+    WorkerModule: taskWorkerModule,
     BatchProducerModule,
     BlockProducerModule,
     BlockTrigger: ManualBlockTrigger,
@@ -58,7 +58,7 @@ export function testingSequencerModules<
     ...defaultModules,
     ...modules,
     // We need to make sure that the taskworkermodule is initialized last
-    LocalTaskWorkerModule: defaultModules.LocalTaskWorkerModule,
+    WorkerModule: defaultModules.WorkerModule,
     SequencerStartupModule: defaultModules.SequencerStartupModule,
   } satisfies SequencerModulesRecord;
 }

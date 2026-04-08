@@ -20,7 +20,7 @@ import {
   BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
@@ -32,7 +32,6 @@ import {
 import {
   BatchStorageResolver,
   GraphqlSequencerModule,
-  GraphqlServer,
   MempoolResolver,
   MerkleWitnessResolver,
   NodeStatusResolver,
@@ -60,8 +59,7 @@ export async function startGraphqlServer() {
       // Database: PrismaRedisDatabase,
 
       Mempool: PrivateMempool,
-      GraphqlServer,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         VanillaTaskWorkerModules.withoutSettlement()
       ),
 
@@ -108,11 +106,6 @@ export async function startGraphqlServer() {
     },
 
     Sequencer: {
-      GraphqlServer: {
-        port: 8080,
-        host: "0.0.0.0",
-        graphiql: true,
-      },
       SequencerStartupModule: {},
 
       // SettlementModule: {
@@ -121,6 +114,11 @@ export async function startGraphqlServer() {
       // },
 
       Graphql: {
+        containerConfig: {
+          port: 8080,
+          host: "0.0.0.0",
+          graphiql: true,
+        },
         QueryGraphqlModule: {},
         MempoolResolver: {},
         BatchStorageResolver: {},
@@ -150,13 +148,11 @@ export async function startGraphqlServer() {
 
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       TaskQueue: {},
 
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       BlockTrigger: {},
     },

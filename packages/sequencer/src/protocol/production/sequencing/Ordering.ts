@@ -77,7 +77,7 @@ export class PathResolution<Object> {
 export class Ordering {
   public constructor(
     private readonly mempool: Mempool,
-    private sizeLimit: number
+    private targetBlockSize: number
   ) {}
 
   mandatoryTransactionsCompleted = false;
@@ -140,7 +140,7 @@ export class Ordering {
   }
 
   private space() {
-    return this.sizeLimit - this.ordered;
+    return this.targetBlockSize - this.ordered;
   }
 
   private mandoQueue: PendingTransaction[] = [];
