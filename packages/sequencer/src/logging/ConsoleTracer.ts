@@ -14,7 +14,7 @@ type StoreType = Record<string, { duration: number }[]>;
 @closeable()
 export class ConsoleTracer implements Tracer {
   // Hard-code this for the moment. Needs to be configured.
-  timeInterval: number = 60000;
+  timeInterval: number = 180000;
 
   store: StoreType = {};
 

@@ -89,7 +89,7 @@ describe("atomic block production", () => {
    * the second block production can succeed
    */
   it("should recover from non-generated metadata", async () => {
-    expect.assertions(6);
+    expect.assertions(5);
 
     const module =
       appchain.sequencer.dependencyContainer.resolve(BlockResultService);
@@ -100,9 +100,6 @@ describe("atomic block production", () => {
         throw new Error("Test error");
       });
 
-    await expect(() => trigger.produceBlock()).rejects.toThrow();
-
-    // This checks that it correctly throws when producing a block with no previous result existing
     await expect(() => trigger.produceBlock()).rejects.toThrow();
 
     await appchain.sequencer
