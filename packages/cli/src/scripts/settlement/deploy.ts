@@ -26,7 +26,7 @@ export default async function (options: LoadEnvOptions) {
       MinaBaseLayer,
       PrivateMempool,
       LocalTaskQueue,
-      LocalTaskWorkerModule,
+      WorkerModule,
       VanillaTaskWorkerModules,
       SequencerStartupModule,
     } = await import("@proto-kit/sequencer");
@@ -49,7 +49,7 @@ export default async function (options: LoadEnvOptions) {
         BridgingModule,
         Mempool: PrivateMempool,
         TaskQueue: LocalTaskQueue,
-        LocalTaskWorker: LocalTaskWorkerModule.from(
+        LocalTaskWorker: WorkerModule.from(
           VanillaTaskWorkerModules.allTasks()
         ),
         SequencerStartupModule,
