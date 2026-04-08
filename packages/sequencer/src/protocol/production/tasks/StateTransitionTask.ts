@@ -25,6 +25,7 @@ import {
 } from "../../../worker/worker/TaskWorkerModule";
 
 import { StateTransitionParametersSerializer } from "./serializers/StateTransitionParametersSerializer";
+import { STProverCompileTask } from "./compile/ProtocolCompileTask";
 
 export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;
@@ -69,9 +70,9 @@ export class StateTransitionTask
 
   public static dependencies() {
     return {
-      //   STProverCompileTask: {
-      //     useClass: STProverCompileTask,
-      //   },
+      STProverCompileTask: {
+        useClass: STProverCompileTask,
+      },
     };
   }
 

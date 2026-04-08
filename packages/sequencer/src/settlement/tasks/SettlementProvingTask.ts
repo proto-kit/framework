@@ -5,6 +5,7 @@ import {
   CompileRegistry,
   mapSequential,
   safeParseJson,
+  dependencyFactory,
 } from "@proto-kit/common";
 import {
   MandatoryProtocolModulesRecord,
@@ -40,6 +41,7 @@ import {
 } from "../../helpers/utils";
 import { Task, TaskSerializer } from "../../worker/flow/Task";
 import { task, TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
+import { SettlementCompileTask } from "../../protocol/production/tasks/compile/SettlementCompileTask";
 
 import { ContractRegistry } from "./ContractRegistry";
 
@@ -75,6 +77,7 @@ export class SomeProofSubclass extends Proof<Field, Void> {
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 @task()
+@dependencyFactory()
 export class SettlementProvingTask
   extends TaskWorkerModule
   implements Task<TransactionTaskArgs, TransactionTaskResult>
@@ -102,6 +105,14 @@ export class SettlementProvingTask
         SettlementContractModule<MandatorySettlementModulesRecord>
       >("SettlementContractModule");
     }
+  }
+
+  public static dependencies() {
+    return {
+      SettlementCompileTask: {
+        useClass: SettlementCompileTask,
+      },
+    };
   }
 
   private async withCustomInstance<T>(

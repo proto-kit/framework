@@ -8,6 +8,7 @@ import {
 } from "@proto-kit/protocol";
 import {
   CompileRegistry,
+  dependencyFactory,
   ProvableMethodExecutionContext,
 } from "@proto-kit/common";
 
@@ -22,9 +23,12 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 
+import { STProverCompileTask } from "./compile/ProtocolCompileTask";
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 @task()
+@dependencyFactory()
 export class StateTransitionReductionTask
   extends TaskWorkerModule
   implements Task<PairTuple<StateTransitionProof>, StateTransitionProof>
@@ -44,6 +48,14 @@ export class StateTransitionReductionTask
   ) {
     super();
     this.stateTransitionProver = this.protocol.stateTransitionProver;
+  }
+
+  public static dependencies() {
+    return {
+      STProverCompileTask: {
+        useClass: STProverCompileTask,
+      },
+    };
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<StateTransitionProof>> {

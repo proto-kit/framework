@@ -22,6 +22,7 @@ import { Bool } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
+  dependencyFactory,
 } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
@@ -35,6 +36,7 @@ import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
+import { BlockProverCompileTask } from "./compile/ProtocolCompileTask";
 
 export type NewBlockArguments = {
   args: BlockArguments;
@@ -61,6 +63,7 @@ export type NewBlockProvingParameters = PairingDerivedInput<
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 @task()
+@dependencyFactory()
 export class NewBlockTask
   extends TaskWorkerModule
   implements Task<NewBlockProvingParameters, BlockProof>
@@ -83,6 +86,14 @@ export class NewBlockTask
     this.stateTransitionProver = protocol.stateTransitionProver;
     this.transactionProver = protocol.transactionProver;
     this.blockProver = protocol.blockProver;
+  }
+
+  public static dependencies() {
+    return {
+      BlockProverCompileTask: {
+        useClass: BlockProverCompileTask,
+      },
+    };
   }
 
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
