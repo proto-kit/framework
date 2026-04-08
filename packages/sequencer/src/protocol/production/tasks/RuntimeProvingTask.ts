@@ -10,7 +10,7 @@ import {
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
-import { CompileRegistry } from "@proto-kit/common";
+import { CompileRegistry, dependencyFactory } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
@@ -23,6 +23,7 @@ import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
+import { RuntimeCompileTask } from "./compile/RuntimeCompileTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -35,6 +36,7 @@ export interface RuntimeProofParameters {
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 @task()
+@dependencyFactory()
 export class RuntimeProvingTask
   extends TaskWorkerModule
   implements Task<RuntimeProofParameters, RuntimeProof>
@@ -50,6 +52,14 @@ export class RuntimeProvingTask
     private readonly compileRegistry: CompileRegistry
   ) {
     super();
+  }
+
+  public static dependencies() {
+    return {
+      RuntimeCompileTask: {
+        useClass: RuntimeCompileTask,
+      },
+    };
   }
 
   public inputSerializer(): TaskSerializer<RuntimeProofParameters> {

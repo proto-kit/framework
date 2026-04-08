@@ -6,6 +6,7 @@ import {
   CompilableModule,
   safeParseJson,
   NoConfig,
+  ChildVerificationKeyService,
 } from "@proto-kit/common";
 import {
   Protocol,
@@ -39,6 +40,10 @@ export abstract class CircuitCompileTask<
     protected readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
+
+    this.protocol.dependencyContainer
+      .resolve(ChildVerificationKeyService)
+      .setCompileRegistry(this.compileRegistry);
   }
 
   public inputSerializer(): TaskSerializer<CompilerTaskParams> {

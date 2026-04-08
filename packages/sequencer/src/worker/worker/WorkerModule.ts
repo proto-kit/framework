@@ -27,13 +27,6 @@ import { TransactionProvingTask } from "../../protocol/production/tasks/Transact
 import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
 import { TransactionReductionTask } from "../../protocol/production/tasks/TransactionReductionTask";
 import { WorkerRegistrationTask } from "../startup/WorkerRegistrationTask";
-import { RuntimeCompileTask } from "../../protocol/production/tasks/compile/RuntimeCompileTask";
-import { SettlementCompileTask } from "../../protocol/production/tasks/compile/SettlementCompileTask";
-import {
-  BlockProverCompileTask,
-  STProverCompileTask,
-  TransactionProverCompileTask,
-} from "../../protocol/production/tasks/compile/ProtocolCompileTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
@@ -105,7 +98,10 @@ export class WorkerModule<Tasks extends TaskWorkerModulesRecord>
   public async start(): Promise<void> {
     const tasks = this.tasks();
 
-    log.debug(`Resolved tasks ${tasks.map((t) => t.name)}`);
+    log.debug(
+      "Resolved tasks",
+      tasks.map((t) => t.name)
+    );
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
     this.worker = worker;
@@ -140,10 +136,6 @@ export class VanillaTaskWorkerModules {
       BlockReductionTask,
       NewBlockTask,
       WorkerRegistrationTask,
-      RuntimeCompileTask,
-      STProverCompileTask,
-      BlockProverCompileTask,
-      TransactionProverCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -151,7 +143,6 @@ export class VanillaTaskWorkerModules {
     return {
       ...VanillaTaskWorkerModules.withoutSettlement(),
       SettlementProvingTask,
-      SettlementCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -166,11 +157,6 @@ export class VanillaTaskWorkerModules {
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
       WorkerRegistrationTask: {},
-      RuntimeCompileTask: {},
-      STProverCompileTask: {},
-      BlockProverCompileTask: {},
-      TransactionProverCompileTask: {},
-      SettlementCompileTask: {},
     } satisfies ModulesConfig<
       ReturnType<typeof VanillaTaskWorkerModules.allTasks>
     >;

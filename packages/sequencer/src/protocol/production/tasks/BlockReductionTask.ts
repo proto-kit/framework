@@ -8,6 +8,7 @@ import {
 } from "@proto-kit/protocol";
 import {
   CompileRegistry,
+  dependencyFactory,
   ProvableMethodExecutionContext,
 } from "@proto-kit/common";
 
@@ -22,9 +23,12 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 
+import { BlockProverCompileTask } from "./compile/ProtocolCompileTask";
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 @task()
+@dependencyFactory()
 export class BlockReductionTask
   extends TaskWorkerModule
   implements Task<PairTuple<BlockProof>, BlockProof>
@@ -43,6 +47,14 @@ export class BlockReductionTask
   ) {
     super();
     this.blockProver = this.protocol.blockProver;
+  }
+
+  public static dependencies() {
+    return {
+      BlockProverCompileTask: {
+        useClass: BlockProverCompileTask,
+      },
+    };
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<BlockProof>> {
