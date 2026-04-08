@@ -22,7 +22,7 @@ import {
   BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
@@ -34,7 +34,6 @@ import {
 import {
   BatchStorageResolver,
   GraphqlSequencerModule,
-  GraphqlServer,
   MempoolResolver,
   LinkedMerkleWitnessResolver as MerkleWitnessResolver,
   NodeStatusResolver,
@@ -99,8 +98,7 @@ export async function startServer() {
       OpenTelemetryServer,
 
       Mempool: PrivateMempool,
-      GraphqlServer,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         VanillaTaskWorkerModules.withoutSettlement()
       ),
 
@@ -151,19 +149,14 @@ export async function startServer() {
     },
 
     Sequencer: {
-      GraphqlServer: {
-        port: 8080,
-        host: "0.0.0.0",
-        graphiql: true,
-      },
       SequencerStartupModule: {},
 
-      // SettlementModule: {
-      //   address: PrivateKey.random().toPublicKey(),
-      //   feepayer: PrivateKey.random(),
-      // },
-
       Graphql: {
+        containerConfig: {
+          port: 8080,
+          host: "0.0.0.0",
+          graphiql: true,
+        },
         QueryGraphqlModule: {},
         MempoolResolver: {},
         BatchStorageResolver: {},
@@ -205,13 +198,11 @@ export async function startServer() {
 
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       TaskQueue: {},
 
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       BlockTrigger: {
         blockInterval: 10000,

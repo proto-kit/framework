@@ -117,7 +117,7 @@ export const settlementOnlyTestFn = (
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        LocalTaskWorkerModule: {
+        WorkerModule: {
           ...VanillaTaskWorkerModules.defaultConfig(),
         },
         BaseLayer: baseLayerConfig,

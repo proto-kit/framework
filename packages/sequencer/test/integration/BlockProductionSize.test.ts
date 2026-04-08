@@ -70,12 +70,12 @@ describe("block limit", () => {
       Sequencer: {
         Database: {},
         BlockTrigger: {},
-        Mempool: {},
-        BatchProducerModule: {},
-        BlockProducerModule: {
-          maximumBlockSize: maxBlockSize,
+        Mempool: {
+          targetBlockSize: maxBlockSize,
         },
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        BatchProducerModule: {},
+        BlockProducerModule: {},
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},

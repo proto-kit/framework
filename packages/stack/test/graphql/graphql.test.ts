@@ -68,9 +68,7 @@ function prepareClient() {
       },
     },
 
-    Sequencer: {
-      Mempool: {},
-    },
+    Sequencer: {},
 
     TransactionSender: {},
     QueryTransportModule: {},

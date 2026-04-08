@@ -1,6 +1,6 @@
-import { LocalTaskWorkerModule, TaskQueue, TypedClass } from "../../src";
+import { WorkerModule, TaskQueue, TypedClass } from "../../src";
 
 export interface MinimumWorkerModules {
   TaskQueue: TypedClass<TaskQueue>;
-  LocalTaskWorkerModule: TypedClass<LocalTaskWorkerModule<any>>;
+  WorkerModule: TypedClass<WorkerModule<any>>;
 }

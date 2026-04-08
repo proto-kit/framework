@@ -1,7 +1,6 @@
 import {
   VanillaGraphqlModules,
   GraphqlSequencerModule,
-  GraphqlServer,
   OpenTelemetryServer,
 } from "@proto-kit/api";
 import {
@@ -10,13 +9,12 @@ import {
   TimedBlockTrigger,
   BlockProducerModule,
   SequencerStartupModule,
-  LocalTaskWorkerModule,
+  WorkerModule,
   VanillaTaskWorkerModules,
   MinaBaseLayer,
   ConstantFeeStrategy,
   BatchProducerModule,
   SettlementModule,
-  DatabasePruneModule,
   InMemoryDatabase,
   LocalTaskQueue,
   AppChainModulesRecord,
@@ -71,7 +69,6 @@ import {
 export class DefaultModules {
   static api() {
     return {
-      GraphqlServer,
       Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
     } satisfies SequencerModulesRecord;
   }
@@ -115,13 +112,12 @@ export class DefaultModules {
     return {
       Database: PrismaRedisDatabase,
       TaskQueue: BullQueue,
-      TaskWorker: LocalTaskWorkerModule.from({
+      TaskWorker: WorkerModule.from({
         IndexBlockTask,
         IndexPendingTxTask,
         IndexBatchTask,
         IndexSettlementTask,
       }),
-      GraphqlServer,
       Graphql: GraphqlSequencerModule.from({
         GeneratedResolverFactory: GeneratedResolverFactoryGraphqlModule,
       }),
@@ -133,7 +129,6 @@ export class DefaultModules {
     handlers: HandlersRecord<PrismaClient>
   ) {
     return {
-      GraphqlServer,
       GraphqlSequencerModule: GraphqlSequencerModule.from({
         ResolverFactory: ResolverFactoryGraphqlModule.from(resolvers),
       }),
@@ -152,13 +147,12 @@ export class DefaultModules {
   static prismaRedisDatabase() {
     return {
       Database: PrismaRedisDatabase,
-      DatabasePruneModule,
     } satisfies SequencerModulesRecord;
   }
 
   static localWorker(options?: { settlementEnabled?: boolean }) {
     return {
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         options?.settlementEnabled === true
           ? VanillaTaskWorkerModules.allTasks()
           : VanillaTaskWorkerModules.withoutSettlement()
@@ -176,9 +170,7 @@ export class DefaultModules {
   static remoteWorker() {
     return {
       TaskQueue: BullQueue,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
     } satisfies SequencerModulesRecord;
   }
 
@@ -195,9 +187,7 @@ export class DefaultModules {
       ...DefaultModules.settlement(),
       Mempool: PrivateMempool,
       TaskQueue: LocalTaskQueue,
-      LocalTaskWorker: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
       SequencerStartupModule,
       BridgingModule: BridgingModule,
     } satisfies SequencerModulesRecord;
@@ -208,12 +198,15 @@ export class DefaultConfigs {
     preset?: Environment;
     overrides?: Partial<GraphqlServerEnv>;
   }) {
+    const serverConfig = DefaultConfigs.graphqlServer({
+      preset: options?.preset,
+      overrides: options?.overrides,
+    });
     return {
-      Graphql: VanillaGraphqlModules.defaultConfig(),
-      ...DefaultConfigs.graphqlServer({
-        preset: options?.preset,
-        overrides: options?.overrides,
-      }),
+      Graphql: {
+        ...VanillaGraphqlModules.defaultConfig(),
+        ...serverConfig.GraphqlServer,
+      },
     };
   }
 
@@ -259,7 +252,7 @@ export class DefaultConfigs {
       BlockProducerModule: {},
       BlockTrigger: blockTriggerConfig,
       SequencerStartupModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       ...settlementConfig,
     };
   }
@@ -329,9 +322,9 @@ export class DefaultConfigs {
         IndexPendingTxTask: {},
         IndexSettlementTask: {},
       },
-      ...graphqlServerConfig,
       Graphql: {
         GeneratedResolverFactory: {},
+        ...graphqlServerConfig.GraphqlServer,
       },
     };
   }
@@ -361,9 +354,9 @@ export class DefaultConfigs {
       Trigger: {
         interval: Number(config.blockInterval) / 5,
       },
-      ...graphqlServerConfig,
       GraphqlSequencerModule: {
         ResolverFactory: {},
+        ...graphqlServerConfig.GraphqlServer,
       },
     };
   }
@@ -410,7 +403,7 @@ export class DefaultConfigs {
       },
       FeeStrategy: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     };
   }
 
@@ -434,9 +427,9 @@ export class DefaultConfigs {
         prisma: {
           connection: config.databaseUrl,
         },
-      },
-      DatabasePruneModule: {
-        pruneOnStartup: config.pruneOnStartup,
+        databasePruneModule: {
+          pruneOnStartup: config.pruneOnStartup,
+        },
       },
     };
   }
@@ -444,7 +437,7 @@ export class DefaultConfigs {
   static localWorker() {
     return {
       TaskQueue: {},
-      LocalTaskWorkerModule: {
+      WorkerModule: {
         ...VanillaTaskWorkerModules.defaultConfig(),
       },
     } satisfies ModulesConfig<ReturnType<typeof DefaultModules.localWorker>>;
@@ -524,7 +517,7 @@ export class DefaultConfigs {
 
     return {
       ...taskQueueConfig,
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     };
   }
 
