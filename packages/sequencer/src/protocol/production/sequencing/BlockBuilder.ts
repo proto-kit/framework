@@ -62,8 +62,7 @@ export class BlockBuilder {
   public async buildBlock(
     asyncStateService: CachedStateService,
     networkState: NetworkState,
-    state: BlockTrackers,
-    maximumBlockSize: number
+    state: BlockTrackers
   ): Promise<{
     blockState: BlockTrackers;
     executionResults: TransactionExecutionResultStatus[];
@@ -74,7 +73,8 @@ export class BlockBuilder {
 
     const networkStateHash = networkState.hash();
 
-    const ordering = new Ordering(this.mempool, maximumBlockSize);
+    const targetBlockSize = this.mempool.getTargetBlockSize();
+    const ordering = new Ordering(this.mempool, targetBlockSize);
 
     let tx: PendingTransaction | undefined;
     // eslint-disable-next-line no-await-in-loop,no-cond-assign

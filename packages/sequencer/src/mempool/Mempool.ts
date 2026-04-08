@@ -25,4 +25,6 @@ export interface Mempool<
   removeTxs: (included: string[], dropped: string[]) => Promise<void>;
 
   length: () => Promise<number>;
+
+  getTargetBlockSize: () => number;
 }

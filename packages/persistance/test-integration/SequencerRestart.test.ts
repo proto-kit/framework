@@ -23,16 +23,11 @@ describe("sequencer restart", () => {
 
   const setup = async () => {
     const { prismaConfig, redisConfig } = IntegrationTestDBConfig;
-    appChain = createPrismaAppchain(prismaConfig, redisConfig);
+    appChain = createPrismaAppchain(prismaConfig, redisConfig, false);
 
     appChain.configurePartial({
       Signer: {
         signer: sender,
-      },
-      Sequencer: {
-        DatabasePruneModule: {
-          pruneOnStartup: false,
-        },
       },
     });
 

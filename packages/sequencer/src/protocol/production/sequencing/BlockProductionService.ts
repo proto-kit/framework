@@ -102,8 +102,7 @@ export class BlockProductionService {
   public async createBlock(
     asyncStateService: AsyncStateService,
     lastBlockWithResult: BlockWithResult,
-    allowEmptyBlocks: boolean,
-    maximumBlockSize: number
+    skipEmptyBlocks: boolean
   ): Promise<
     | {
         block: Block;
@@ -151,14 +150,13 @@ export class BlockProductionService {
     } = await this.blockBuilder.buildBlock(
       stateService,
       networkState,
-      blockState,
-      maximumBlockSize
+      blockState
     );
 
     const previousBlockHash =
       lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
 
-    if (executionResults.length === 0 && !allowEmptyBlocks) {
+    if (executionResults.length === 0 && skipEmptyBlocks) {
       log.info(
         "After sequencing, block has no sequenceable transactions left, skipping block"
       );
