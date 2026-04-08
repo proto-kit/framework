@@ -23,16 +23,18 @@ import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingT
 import { Task } from "../flow/Task";
 import { TaskQueue } from "../queue/TaskQueue";
 import { StateTransitionTask } from "../../protocol/production/tasks/StateTransitionTask";
-import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
 import { closeable } from "../../sequencer/builder/Closeable";
 import { StateTransitionReductionTask } from "../../protocol/production/tasks/StateTransitionReductionTask";
 import { TransactionProvingTask } from "../../protocol/production/tasks/TransactionProvingTask";
 import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
 import { TransactionReductionTask } from "../../protocol/production/tasks/TransactionReductionTask";
+import { WorkerRegistrationTask } from "../startup/WorkerRegistrationTask";
+import { RuntimeCompileTask } from "../../protocol/production/tasks/compile/RuntimeCompileTask";
+import { ProtocolCompileTask } from "../../protocol/production/tasks/compile/ProtocolCompileTask";
+import { SettlementCompileTask } from "../../protocol/production/tasks/compile/SettlementCompileTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
-import { WorkerRegistrationTask } from "./startup/WorkerRegistrationTask";
 
 // Temporary workaround against the compiler emitting
 // import("common/dist") inside the library artifacts
@@ -137,8 +139,9 @@ export class VanillaTaskWorkerModules {
       TransactionReductionTask,
       BlockReductionTask,
       NewBlockTask,
-      CircuitCompilerTask,
       WorkerRegistrationTask,
+      RuntimeCompileTask,
+      ProtocolCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -146,6 +149,7 @@ export class VanillaTaskWorkerModules {
     return {
       ...VanillaTaskWorkerModules.withoutSettlement(),
       SettlementProvingTask,
+      SettlementCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -159,8 +163,10 @@ export class VanillaTaskWorkerModules {
       NewBlockTask: {},
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
-      CircuitCompilerTask: {},
       WorkerRegistrationTask: {},
+      RuntimeCompileTask: {},
+      ProtocolCompileTask: {},
+      SettlementCompileTask: {},
     } satisfies ModulesConfig<
       ReturnType<typeof VanillaTaskWorkerModules.allTasks>
     >;
