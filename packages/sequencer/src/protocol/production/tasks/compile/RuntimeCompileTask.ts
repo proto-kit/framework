@@ -7,10 +7,13 @@ import {
   Protocol,
 } from "@proto-kit/protocol";
 
+import { task } from "../../../../worker/worker/TaskWorkerModule";
+
 import { CircuitCompileTask } from "./CircuitCompileTask";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
 export class RuntimeCompileTask extends CircuitCompileTask {
   public name = "compile-runtime";
 

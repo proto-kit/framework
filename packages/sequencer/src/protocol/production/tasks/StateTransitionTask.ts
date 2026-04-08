@@ -14,11 +14,15 @@ import {
   ProvableMethodExecutionContext,
   CompileRegistry,
   LinkedMerkleTreeWitness,
+  dependencyFactory,
 } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 
 import { StateTransitionParametersSerializer } from "./serializers/StateTransitionParametersSerializer";
 
@@ -31,6 +35,8 @@ export interface StateTransitionProofParameters {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
+@dependencyFactory()
 export class StateTransitionTask
   extends TaskWorkerModule
   implements Task<StateTransitionProofParameters, StateTransitionProof>
@@ -59,6 +65,14 @@ export class StateTransitionTask
     return new ProofTaskSerializer(
       this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
     );
+  }
+
+  public static dependencies() {
+    return {
+      //   STProverCompileTask: {
+      //     useClass: STProverCompileTask,
+      //   },
+    };
   }
 
   public async compute(

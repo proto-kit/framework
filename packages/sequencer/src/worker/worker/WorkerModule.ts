@@ -7,8 +7,6 @@ import {
   ModulesRecord,
   NoConfig,
   Presets,
-  ResolvableModules,
-  StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
 import { ReturnType } from "@proto-kit/protocol";
@@ -68,9 +66,7 @@ export class WorkerModule<Tasks extends TaskWorkerModulesRecord>
 
   public containerEvents = new EventEmitter<WorkerModuleEvents>();
 
-  private worker?: FlowTaskWorker<
-    InstanceType<ResolvableModules<Tasks>[StringKeyOf<Tasks>]>[]
-  > = undefined;
+  private worker?: FlowTaskWorker = undefined;
 
   public static from<Tasks extends TaskWorkerModulesRecord>(
     modules: Tasks
@@ -102,14 +98,14 @@ export class WorkerModule<Tasks extends TaskWorkerModulesRecord>
     return this.container.resolve<TaskQueue>("TaskQueue");
   }
 
-  public async start(): Promise<void> {
-    const tasks = this.moduleNames.map((moduleName) => {
-      this.assertIsValidModuleName(moduleName);
+  public tasks() {
+    return this.container.resolveAll<Task<unknown, unknown>>("Task");
+  }
 
-      const task = this.resolve(moduleName);
-      log.debug(`Resolved task ${task.name}`);
-      return task;
-    });
+  public async start(): Promise<void> {
+    const tasks = this.tasks();
+
+    log.debug(`Resolved tasks ${tasks.map((t) => t.name)}`);
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
     this.worker = worker;

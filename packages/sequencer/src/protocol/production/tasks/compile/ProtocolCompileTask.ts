@@ -6,6 +6,8 @@ import {
   Protocol,
 } from "@proto-kit/protocol";
 
+import { task } from "../../../../worker/worker/TaskWorkerModule";
+
 import { CircuitCompileTask } from "./CircuitCompileTask";
 
 @injectable()
@@ -33,6 +35,7 @@ export class ProtocolCompileTask extends CircuitCompileTask {
 }
 
 @injectable()
+@task()
 export class BlockProverCompileTask extends ProtocolCompileTask {
   public getTargetProtocolModule() {
     return "BlockProver";
@@ -40,6 +43,7 @@ export class BlockProverCompileTask extends ProtocolCompileTask {
 }
 
 @injectable()
+@task()
 export class STProverCompileTask extends ProtocolCompileTask {
   public getTargetProtocolModule() {
     return "StateTransitionProver";
@@ -47,6 +51,7 @@ export class STProverCompileTask extends ProtocolCompileTask {
 }
 
 @injectable()
+@task()
 export class TransactionProverCompileTask extends ProtocolCompileTask {
   public getTargetProtocolModule() {
     return "TransactionProver";

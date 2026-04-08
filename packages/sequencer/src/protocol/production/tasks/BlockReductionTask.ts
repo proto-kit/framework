@@ -11,7 +11,10 @@ import {
   ProvableMethodExecutionContext,
 } from "@proto-kit/common";
 
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import {
   PairProofTaskSerializer,
@@ -21,6 +24,7 @@ import {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
 export class BlockReductionTask
   extends TaskWorkerModule
   implements Task<PairTuple<BlockProof>, BlockProof>

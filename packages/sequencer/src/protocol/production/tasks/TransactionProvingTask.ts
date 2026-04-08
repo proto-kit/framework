@@ -18,7 +18,10 @@ import {
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskSerializer, Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { TransactionProvingTaskParameterSerializer } from "./serializers/TransactionProvingTaskParameterSerializer";
@@ -49,6 +52,7 @@ export async function executeWithPrefilledStateService<Return>(
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
 export class TransactionProvingTask
   extends TaskWorkerModule
   implements Task<TransactionProvingTaskParameters, TransactionProof>
