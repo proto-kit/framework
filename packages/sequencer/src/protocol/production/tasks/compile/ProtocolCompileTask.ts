@@ -1,4 +1,4 @@
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { CompilableModule, CompileRegistry } from "@proto-kit/common";
 import {
   ContractArgsRegistry,
@@ -9,9 +9,8 @@ import {
 import { CircuitCompileTask } from "./CircuitCompileTask";
 
 @injectable()
-@scoped(Lifecycle.ContainerScoped)
 export class ProtocolCompileTask extends CircuitCompileTask {
-  public name = "compile-protocol";
+  public name = "undefined";
 
   public constructor(
     @inject("Protocol")
@@ -20,9 +19,36 @@ export class ProtocolCompileTask extends CircuitCompileTask {
     contractArgsRegistry: ContractArgsRegistry
   ) {
     super(protocol, compileRegistry, contractArgsRegistry);
+
+    this.name = `compile-${this.getTargetProtocolModule().toLowerCase()}`;
+  }
+
+  public getTargetProtocolModule(): string {
+    throw new Error("");
   }
 
   public async getTargets(): Promise<CompilableModule[]> {
-    return [this.protocol.blockProver];
+    return [this.protocol.resolveOrFail(this.getTargetProtocolModule())];
+  }
+}
+
+@injectable()
+export class BlockProverCompileTask extends ProtocolCompileTask {
+  public getTargetProtocolModule() {
+    return "BlockProver";
+  }
+}
+
+@injectable()
+export class STProverCompileTask extends ProtocolCompileTask {
+  public getTargetProtocolModule() {
+    return "StateTransitionProver";
+  }
+}
+
+@injectable()
+export class TransactionProverCompileTask extends ProtocolCompileTask {
+  public getTargetProtocolModule() {
+    return "TransactionProver";
   }
 }

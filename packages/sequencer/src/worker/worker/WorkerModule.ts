@@ -30,8 +30,12 @@ import { BlockReductionTask } from "../../protocol/production/tasks/BlockReducti
 import { TransactionReductionTask } from "../../protocol/production/tasks/TransactionReductionTask";
 import { WorkerRegistrationTask } from "../startup/WorkerRegistrationTask";
 import { RuntimeCompileTask } from "../../protocol/production/tasks/compile/RuntimeCompileTask";
-import { ProtocolCompileTask } from "../../protocol/production/tasks/compile/ProtocolCompileTask";
 import { SettlementCompileTask } from "../../protocol/production/tasks/compile/SettlementCompileTask";
+import {
+  BlockProverCompileTask,
+  STProverCompileTask,
+  TransactionProverCompileTask,
+} from "../../protocol/production/tasks/compile/ProtocolCompileTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
@@ -43,7 +47,7 @@ export { TypedClass };
 
 export type TaskWorkerModulesRecord = ModulesRecord<
   // TODO any -> unknown
-  TypedClass<TaskWorkerModule & Task<any, any>>
+  TypedClass<TaskWorkerModule<unknown> & Task<any, any>>
 >;
 
 type WorkerModuleEvents = { ready: [boolean] };
@@ -141,7 +145,9 @@ export class VanillaTaskWorkerModules {
       NewBlockTask,
       WorkerRegistrationTask,
       RuntimeCompileTask,
-      ProtocolCompileTask,
+      STProverCompileTask,
+      BlockProverCompileTask,
+      TransactionProverCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -165,7 +171,9 @@ export class VanillaTaskWorkerModules {
       SettlementProvingTask: {},
       WorkerRegistrationTask: {},
       RuntimeCompileTask: {},
-      ProtocolCompileTask: {},
+      STProverCompileTask: {},
+      BlockProverCompileTask: {},
+      TransactionProverCompileTask: {},
       SettlementCompileTask: {},
     } satisfies ModulesConfig<
       ReturnType<typeof VanillaTaskWorkerModules.allTasks>

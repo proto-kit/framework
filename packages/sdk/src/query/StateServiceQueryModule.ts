@@ -31,7 +31,7 @@ export class StateServiceQueryModule
   }
 
   public get treeStore(): AsyncLinkedLeafStore {
-    return this.sequencer.dependencyContainer.resolve("AsyncLinkedMerkleStore");
+    return this.sequencer.dependencyContainer.resolve("AsyncLinkedLeafStore");
   }
 
   public get(key: Field) {

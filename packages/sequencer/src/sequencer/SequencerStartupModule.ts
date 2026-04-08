@@ -13,6 +13,7 @@ import {
   CompileRegistry,
   AreProofsEnabled,
   CompileArtifact,
+  mapSequential,
 } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../worker/flow/Flow";
@@ -21,11 +22,18 @@ import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationK
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
 import { RuntimeCompileTask } from "../protocol/production/tasks/compile/RuntimeCompileTask";
-import { ProtocolCompileTask } from "../protocol/production/tasks/compile/ProtocolCompileTask";
 import { SettlementCompileTask } from "../protocol/production/tasks/compile/SettlementCompileTask";
-import { CompilerTaskParams } from "../protocol/production/tasks/compile/CircuitCompileTask";
+import {
+  CircuitCompileTask,
+  CompilerTaskParams,
+} from "../protocol/production/tasks/compile/CircuitCompileTask";
 import { Task } from "../worker/flow/Task";
 import { SettlementModule } from "../settlement/SettlementModule";
+import {
+  BlockProverCompileTask,
+  STProverCompileTask,
+  TransactionProverCompileTask,
+} from "../protocol/production/tasks/compile/ProtocolCompileTask";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
@@ -40,9 +48,11 @@ export class SequencerStartupModule
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly runtimeCompilerTask: RuntimeCompileTask,
-    private readonly protocolCompilerTask: ProtocolCompileTask,
-    private readonly settlementCompilerTask: SettlementCompileTask,
+    private readonly runtimeCompileTask: RuntimeCompileTask,
+    private readonly stProverCompileTask: STProverCompileTask,
+    private readonly transactionProverCompileTask: TransactionProverCompileTask,
+    private readonly blockProverCompileTask: BlockProverCompileTask,
+    private readonly settlementCompileTask: SettlementCompileTask,
     private readonly verificationKeyService: VerificationKeyService,
     private readonly registrationFlow: WorkerRegistrationFlow,
     private readonly compileRegistry: CompileRegistry,
@@ -72,7 +82,7 @@ export class SequencerStartupModule
   public async compileRuntime(flow: Flow<{}>) {
     const artifacts = await this.pushCompileTask(
       flow,
-      this.runtimeCompilerTask,
+      this.runtimeCompileTask,
       {
         existingArtifacts: {},
         runtimeVKRoot: undefined,
@@ -96,7 +106,7 @@ export class SequencerStartupModule
   private async compileBridge(flow: Flow<{}>, isSignedSettlement?: boolean) {
     const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
       await flow.pushTask(
-        this.settlementCompilerTask,
+        this.settlementCompileTask,
         {
           existingArtifacts: this.compileRegistry.getAllArtifacts(),
           runtimeVKRoot: undefined,
@@ -111,10 +121,14 @@ export class SequencerStartupModule
     return result;
   }
 
-  private async compileProtocol(flow: Flow<{}>, runtimeVkTreeRoot: bigint) {
+  private async compileProtocol(
+    flow: Flow<{}>,
+    task: CircuitCompileTask,
+    runtimeVkTreeRoot: bigint
+  ) {
     const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
       await flow.pushTask(
-        this.protocolCompilerTask,
+        task,
         {
           existingArtifacts: this.compileRegistry.getAllArtifacts(),
           runtimeVKRoot: runtimeVkTreeRoot.toString(),
@@ -153,7 +167,14 @@ export class SequencerStartupModule
 
     const root = await this.compileRuntime(flow);
 
-    await this.compileProtocol(flow, root);
+    const tasks = [
+      this.blockProverCompileTask,
+      this.stProverCompileTask,
+      this.transactionProverCompileTask,
+    ];
+    await mapSequential(tasks, async (task) => {
+      await this.compileProtocol(flow, task, root);
+    });
 
     let bridgeVk: CompileArtifact | undefined = undefined;
 

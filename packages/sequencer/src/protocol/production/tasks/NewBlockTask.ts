@@ -15,6 +15,8 @@ import {
   BlockArgumentsBatch,
   BlockProverStateInput,
   ProtocolConstants,
+  DynamicSTProof,
+  DynamicTransactionProof,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 import {
@@ -143,6 +145,8 @@ export class NewBlockTask
             // deferSTProof.or(deferTransactionProof)
           );
         } else {
+          const stProof = DynamicSTProof.fromProof(input1);
+          const txProof = DynamicTransactionProof.fromProof(input2);
           await this.blockProver.proveBlockBatchWithProofs(
             publicInput,
             stateWitness,
@@ -151,8 +155,8 @@ export class NewBlockTask
             blockArgumentBatch,
             deferSTProof,
             deferTransactionProof,
-            input1,
-            input2
+            stProof,
+            txProof
           );
         }
       }

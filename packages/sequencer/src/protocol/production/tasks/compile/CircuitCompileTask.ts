@@ -5,6 +5,7 @@ import {
   CompileRegistry,
   CompilableModule,
   safeParseJson,
+  NoConfig,
 } from "@proto-kit/common";
 import {
   Protocol,
@@ -29,10 +30,9 @@ export type CompilerTaskParams = {
   isSignedSettlement?: boolean;
 };
 
-export abstract class CircuitCompileTask extends UnpreparingTask<
-  CompilerTaskParams,
-  ArtifactRecord
-> {
+export abstract class CircuitCompileTask<
+  Config = NoConfig,
+> extends UnpreparingTask<CompilerTaskParams, ArtifactRecord, Config> {
   protected constructor(
     protected readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     protected readonly compileRegistry: CompileRegistry,
