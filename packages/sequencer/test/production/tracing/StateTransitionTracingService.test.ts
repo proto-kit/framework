@@ -75,7 +75,7 @@ async function applyBatchesToTree(
 //   const SequencerC = Sequencer.from({
 //     modules: {
 //       TaskQueue: LocalTaskQueue,
-//       LocalTaskWorkerModule: LocalTaskWorkerModule.from({
+//       WorkerModule: WorkerModule.from({
 //         StateTransitionTask,
 //         StateTransitionReductionTask,
 //       }),
@@ -103,7 +103,7 @@ async function applyBatchesToTree(
 //
 //   const sequencer = new SequencerC();
 //   sequencer.configure({
-//     LocalTaskWorkerModule: {
+//     WorkerModule: {
 //       StateTransitionTask: {},
 //       StateTransitionReductionTask: {},
 //     },

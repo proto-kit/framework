@@ -95,7 +95,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           Mempool: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
-          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+          WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           BaseLayer: {},
           TaskQueue: {},
           FeeStrategy: {},
