@@ -182,11 +182,11 @@ export class SettlementProvingTask
     return proofType.prototype instanceof Proof
       ? new ProofTaskSerializer(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          proofType as Subclass<typeof Proof<any, any>>
+          async () => proofType as Subclass<typeof Proof<any, any>>
         )
       : new DynamicProofTaskSerializer(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          proofType as Subclass<typeof DynamicProof<any, any>>
+          async () => proofType as Subclass<typeof DynamicProof<any, any>>
         );
   }
 
@@ -341,85 +341,85 @@ export class SettlementProvingTask
         };
       },
 
-      toJSON: (input: TransactionTaskArgs): string => {
+      toJSON: async (input: TransactionTaskArgs): Promise<string> => {
         const transaction = input.transaction.toJSON();
 
-        const lazyProofs =
-          input.transaction.transaction.accountUpdates.map<LazyProofJson | null>(
-            (au) => {
-              if (au.lazyAuthorization?.kind === "lazy-proof") {
-                const lazyProof = au.lazyAuthorization;
+        const lazyProofs = await mapSequential(
+          input.transaction.transaction.accountUpdates,
+          async (au) => {
+            if (au.lazyAuthorization?.kind === "lazy-proof") {
+              const lazyProof = au.lazyAuthorization;
 
-                // eslint-disable-next-line no-underscore-dangle
-                const method = lazyProof.ZkappClass._methods?.find(
-                  (methodInterface) =>
-                    methodInterface.methodName === lazyProof.methodName
-                );
-                if (method === undefined) {
-                  throw new Error("Method interface not found");
-                }
+              // eslint-disable-next-line no-underscore-dangle
+              const method = lazyProof.ZkappClass._methods?.find(
+                (methodInterface) =>
+                  methodInterface.methodName === lazyProof.methodName
+              );
+              if (method === undefined) {
+                throw new Error("Method interface not found");
+              }
 
-                // args are [public key, tokenId, ...args]
-                const args = method.args.slice(2);
+              // args are [public key, tokenId, ...args]
+              const args = method.args.slice(2);
 
-                const encodedArgs = lazyProof.args
-                  .map((arg, index) => {
-                    const argType = args[index];
-                    const argTypeProvable = ProvableType.get(argType);
-                    const argProofs = this.extractProofTypes(argType);
+              const encodedArgs = (
+                await mapSequential(lazyProof.args, async (arg, index) => {
+                  const argType = args[index];
+                  const argTypeProvable = ProvableType.get(argType);
+                  const argProofs = this.extractProofTypes(argType);
 
-                    if (argProofs.length === 0) {
-                      // Special case for AUForest
-                      if (arg instanceof AccountUpdateForest) {
-                        const accountUpdates = AccountUpdateForest.toFlatArray(
-                          arg
-                        ).map((update) => AccountUpdate.toJSON(update));
-
-                        return {
-                          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                          fields: [] as string[],
-                          aux: [
-                            JSON.stringify({
-                              accountUpdates,
-                              typeName: "AccountUpdateForest",
-                            }),
-                          ],
-                        };
-                      }
-
-                      const fields = argTypeProvable
-                        .toFields(arg)
-                        .map((f) => f.toString());
-                      const aux = argTypeProvable
-                        .toAuxiliary(arg)
-                        .map((x) => JSON.stringify(x));
+                  if (argProofs.length === 0) {
+                    // Special case for AUForest
+                    if (arg instanceof AccountUpdateForest) {
+                      const accountUpdates = AccountUpdateForest.toFlatArray(
+                        arg
+                      ).map((update) => AccountUpdate.toJSON(update));
 
                       return {
-                        fields,
-                        aux,
+                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                        fields: [] as string[],
+                        aux: [
+                          JSON.stringify({
+                            accountUpdates,
+                            typeName: "AccountUpdateForest",
+                          }),
+                        ],
                       };
-                    } else {
-                      const serializer = this.getProofSerializer(argProofs[0]);
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                      return serializer.toJSON(arg);
                     }
-                  })
-                  .filter(filterNonUndefined);
 
-                return {
-                  methodName: lazyProof.methodName,
-                  zkappClassName: lazyProof.ZkappClass.name,
-                  args: encodedArgs,
-                  blindingValue: lazyProof.blindingValue.toString(),
-                  memoized: lazyProof.memoized.map((value) => ({
-                    fields: value.fields.map((f) => f.toString()),
-                    aux: value.aux,
-                  })),
-                };
-              }
-              return null;
+                    const fields = argTypeProvable
+                      .toFields(arg)
+                      .map((f) => f.toString());
+                    const aux = argTypeProvable
+                      .toAuxiliary(arg)
+                      .map((x) => JSON.stringify(x));
+
+                    return {
+                      fields,
+                      aux,
+                    };
+                  } else {
+                    const serializer = this.getProofSerializer(argProofs[0]);
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                    return await serializer.toJSON(arg);
+                  }
+                })
+              ).filter(filterNonUndefined);
+
+              return {
+                methodName: lazyProof.methodName,
+                zkappClassName: lazyProof.ZkappClass.name,
+                args: encodedArgs,
+                blindingValue: lazyProof.blindingValue.toString(),
+                memoized: lazyProof.memoized.map((value) => ({
+                  fields: value.fields.map((f) => f.toString()),
+                  aux: value.aux,
+                })),
+              };
             }
-          );
+            return null;
+          }
+        );
 
         const jsonObject: JsonInputObject = {
           transaction,

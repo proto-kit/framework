@@ -15,8 +15,6 @@ import {
   BlockArgumentsBatch,
   BlockProverStateInput,
   ProtocolConstants,
-  DynamicSTProof,
-  DynamicTransactionProof,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 import {
@@ -97,12 +95,12 @@ export class NewBlockTask
   }
 
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
-    const stProofSerializer = new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+    const stProofSerializer = new ProofTaskSerializer(() =>
+      this.stateTransitionProver.zkProgrammable.proofType()
     );
 
-    const transactionProofSerializer = new ProofTaskSerializer(
-      this.transactionProver.zkProgrammable.zkProgram[0].Proof
+    const transactionProofSerializer = new ProofTaskSerializer(() =>
+      this.transactionProver.zkProgrammable.proofType()
     );
 
     return new NewBlockProvingParametersSerializer(
@@ -112,8 +110,8 @@ export class NewBlockTask
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.blockProver.zkProgrammable.proofType()
     );
   }
 
@@ -157,11 +155,16 @@ export class NewBlockTask
             blockWitness,
             blockArgumentBatch,
             Bool(false)
-            // deferSTProof.or(deferTransactionProof)
           );
         } else {
+          const DynamicSTProof =
+            await this.stateTransitionProver.zkProgrammable.dynamicProofType();
           const stProof = DynamicSTProof.fromProof(input1);
+
+          const DynamicTransactionProof =
+            await this.transactionProver.zkProgrammable.dynamicProofType();
           const txProof = DynamicTransactionProof.fromProof(input2);
+
           await this.blockProver.proveBlockBatchWithProofs(
             publicInput,
             stateWitness,

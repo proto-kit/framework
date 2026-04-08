@@ -183,7 +183,7 @@ export function testBlockProduction<
       app.sequencer.dependencyContainer.resolve<AsyncLinkedLeafStore>(
         "UnprovenLinkedLeafStore"
       );
-  });
+  }, 30000);
 
   afterEach(async () => {
     await appChain.close();

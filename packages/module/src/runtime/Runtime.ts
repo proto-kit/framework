@@ -76,7 +76,9 @@ export class RuntimeZkProgrammable<
     return this.runtime.areProofsEnabled;
   }
 
-  public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
+  public async zkProgramFactory(): Promise<
+    PlainZkProgram<undefined, MethodPublicOutput>[]
+  > {
     type Methods = Record<
       string,
       {
@@ -253,9 +255,12 @@ export class RuntimeZkProgrammable<
 
       return {
         name,
+        publicInputType: program.publicInputType,
+        publicOutputType: program.publicOutputType,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
+        maxProofsVerified: program.maxProofsVerified.bind(program),
         Proof: SelfProof,
         methods,
       };

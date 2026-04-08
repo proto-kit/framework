@@ -35,10 +35,10 @@ export class CircuitAnalysisModule {
 
     const zkProgrammablePromises = await mapSequential(
       zkProgrammables,
-      (withZkProgrammable) =>
-        mapSequential(
+      async (withZkProgrammable) =>
+        await mapSequential(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          withZkProgrammable.zkProgrammable.zkProgramFactory() as PlainZkProgram<
+          (await withZkProgrammable.zkProgrammable.zkProgramFactory()) as PlainZkProgram<
             unknown,
             unknown
           >[],

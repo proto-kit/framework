@@ -106,7 +106,7 @@ export class BatchProducerModule extends SequencerModule {
 
     const blockHashes = blocks.map((bundle) => bundle.block.hash.toString());
 
-    const jsonProof = this.blockProofSerializer
+    const jsonProof = await this.blockProofSerializer
       .getBlockProofSerializer()
       .toJSONProof(batch.proof);
 

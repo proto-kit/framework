@@ -1,4 +1,3 @@
-// eslint-disable-next-line max-classes-per-file
 import {
   Bool,
   DynamicProof,
@@ -360,27 +359,15 @@ export class BlockProverState {
   }
 }
 
-export class DynamicSTProof extends DynamicProof<
+export type DynamicSTProof = DynamicProof<
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput
-> {
-  static publicInputType = StateTransitionProverPublicInput;
+>;
 
-  static publicOutputType = StateTransitionProverPublicOutput;
-
-  static maxProofsVerified = 2 as const;
-}
-
-export class DynamicTransactionProof extends DynamicProof<
+export type DynamicTransactionProof = DynamicProof<
   TransactionProverPublicInput,
   TransactionProverPublicOutput
-> {
-  static publicInputType = TransactionProverPublicInput;
-
-  static publicOutputType = TransactionProverPublicOutput;
-
-  static maxProofsVerified = 2 as const;
-}
+>;
 
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 

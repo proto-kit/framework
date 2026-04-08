@@ -62,9 +62,6 @@ export class TransactionProvingTask
 {
   private readonly transactionProver: TransactionProvable;
 
-  private readonly runtimeProofType =
-    this.runtime.zkProgrammable.zkProgram[0].Proof;
-
   public name = "transaction";
 
   public constructor(
@@ -88,9 +85,13 @@ export class TransactionProvingTask
     };
   }
 
+  private async runtimeProofType() {
+    return await this.runtime.zkProgrammable.proofType();
+  }
+
   public inputSerializer(): TaskSerializer<TransactionProvingTaskParameters> {
     const runtimeProofSerializer = new ProofTaskSerializer(
-      this.runtimeProofType
+      this.runtimeProofType.bind(this)
     );
     return new TransactionProvingTaskParameterSerializer(
       runtimeProofSerializer
@@ -98,8 +99,8 @@ export class TransactionProvingTask
   }
 
   public resultSerializer(): TaskSerializer<TransactionProof> {
-    return new ProofTaskSerializer(
-      this.transactionProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.transactionProver.zkProgrammable.proofType()
     );
   }
 

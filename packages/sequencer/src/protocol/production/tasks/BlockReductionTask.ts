@@ -58,14 +58,14 @@ export class BlockReductionTask
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<BlockProof>> {
-    return new PairProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    return new PairProofTaskSerializer(() =>
+      this.blockProver.zkProgrammable.proofType()
     );
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.blockProver.zkProgrammable.proofType()
     );
   }
 

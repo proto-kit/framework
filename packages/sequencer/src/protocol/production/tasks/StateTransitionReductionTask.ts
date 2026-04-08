@@ -59,14 +59,14 @@ export class StateTransitionReductionTask
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<StateTransitionProof>> {
-    return new PairProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+    return new PairProofTaskSerializer(() =>
+      this.stateTransitionProver.zkProgrammable.proofType()
     );
   }
 
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
-    return new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.stateTransitionProver.zkProgrammable.proofType()
     );
   }
 
