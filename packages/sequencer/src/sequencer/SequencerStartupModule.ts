@@ -4,6 +4,7 @@ import {
   ContractArgsRegistry,
   MandatoryProtocolModulesRecord,
   Protocol,
+  ProtocolConstants,
   RuntimeVerificationKeyRootService,
 } from "@proto-kit/protocol";
 import {
@@ -143,6 +144,8 @@ export class SequencerStartupModule
   }
 
   public async start() {
+    ProtocolConstants.printAllConstants();
+
     const flow = this.flowCreator.createFlow("compile-circuits", {});
 
     this.protocol.dependencyContainer
