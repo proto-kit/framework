@@ -1,68 +1,39 @@
-import { buildSchemaSync, NonEmptyArray } from "type-graphql";
+import assert from "node:assert";
+
 import { Closeable, closeable, SequencerModule } from "@proto-kit/sequencer";
 import {
   ChildContainerProvider,
   Configurable,
   CombinedModuleContainerConfig,
+  dependencyFactory,
   log,
   ModuleContainer,
   ModulesRecord,
   TypedClass,
 } from "@proto-kit/common";
-import { GraphQLSchema } from "graphql/type";
-import { stitchSchemas } from "@graphql-tools/stitch";
-import { createYoga } from "graphql-yoga";
-import Koa from "koa";
 
 import {
   GraphqlModule,
   ResolverFactoryGraphqlModule,
   SchemaGeneratingGraphqlModule,
 } from "./GraphqlModule";
+import { GraphqlServer, GraphqlServerOptions } from "./GraphqlServer";
 
 export type GraphqlModulesRecord = ModulesRecord<
   TypedClass<GraphqlModule<unknown>>
 >;
 
-export interface GraphqlServerConfig {
-  host: string;
-  port: number;
-  graphiql: boolean;
-}
-
 export type GraphqlSequencerModuleConfig<
   GraphQLModules extends GraphqlModulesRecord,
-> = CombinedModuleContainerConfig<GraphQLModules, GraphqlServerConfig>;
-
-type Server = ReturnType<Koa["listen"]>;
-
-function assertArrayIsNotEmpty<T>(
-  array: readonly T[],
-  errorMessage: string
-): asserts array is NonEmptyArray<T> {
-  if (array.length === 0) {
-    throw new Error(errorMessage);
-  }
-}
+> = CombinedModuleContainerConfig<GraphQLModules, GraphqlServerOptions>;
 
 @closeable()
+@dependencyFactory()
 export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
-  extends ModuleContainer<GraphQLModules, GraphqlServerConfig>
+  extends ModuleContainer<GraphQLModules, GraphqlServerOptions>
   implements Configurable<unknown>, SequencerModule<unknown>, Closeable
 {
-  private readonly modules: TypedClass<GraphqlModule<unknown>>[] = [];
-
-  private readonly schemas: GraphQLSchema[] = [];
-
-  private resolvers: NonEmptyArray<Function> | undefined;
-
-  private server?: Server;
-
-  private context: {} = {};
-
-  public get serverConfig(): GraphqlServerConfig {
-    return this.containerConfig;
-  }
+  private graphqlServer?: GraphqlServer;
 
   public static from<GraphQLModules extends GraphqlModulesRecord>(
     definition: GraphQLModules
@@ -74,28 +45,35 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
     };
   }
 
+  public static dependencies() {
+    return {
+      graphqlServer: {
+        useClass: GraphqlServer,
+      },
+    };
+  }
+
   public constructor(definition: GraphQLModules) {
     super(definition);
   }
 
-  public setContext(newContext: {}) {
-    this.context = newContext;
-  }
-
-  public registerResolvers(resolvers: NonEmptyArray<Function>) {
-    if (this.resolvers === undefined) {
-      this.resolvers = resolvers;
-    } else {
-      this.resolvers = [...this.resolvers, ...resolvers];
+  private getGraphqlConfig(graphqlServer: GraphqlServer): GraphqlServerOptions {
+    try {
+      return graphqlServer.config;
+    } catch {
+      return this.containerConfig;
     }
   }
 
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
-    this.container.register("GraphqlServer", { useValue: this });
+    this.graphqlServer = this.container.resolve("GraphqlServer");
   }
 
   public async start(): Promise<void> {
+    assert(this.graphqlServer !== undefined);
+    this.graphqlServer.setContainer(this.container);
+    this.graphqlServer.config = this.getGraphqlConfig(this.graphqlServer);
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition) {
       const moduleClass = this.definition[moduleName];
@@ -112,9 +90,9 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
           moduleName
         ) as ResolverFactoryGraphqlModule<unknown>;
         // eslint-disable-next-line no-await-in-loop
-        this.registerResolvers(await module.resolvers());
+        this.graphqlServer.registerResolvers(await module.resolvers());
       } else {
-        this.modules.push(moduleClass);
+        this.graphqlServer.registerModule(moduleClass);
 
         if (
           Object.prototype.isPrototypeOf.call(
@@ -127,91 +105,16 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
           const module = this.resolve(
             moduleName
           ) as SchemaGeneratingGraphqlModule<unknown>;
-          this.schemas.push(module.generateSchema());
+          this.graphqlServer.registerSchema(module.generateSchema());
         }
       }
     }
-    await this.startServer();
-  }
-
-  // Server logic
-
-  private async startServer() {
-    const { modules, container: dependencyContainer } = this;
-
-    const resolvers = [...modules, ...(this.resolvers || [])];
-
-    assertArrayIsNotEmpty(
-      resolvers,
-      "At least one module has to be provided to GraphqlServer"
-    );
-
-    // Building schema
-    const resolverSchema = buildSchemaSync({
-      resolvers,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      container: { get: (cls) => dependencyContainer.resolve(cls) },
-      validate: {
-        enableDebugMessages: true,
-      },
-    });
-
-    // Instantiate all modules at startup
-    modules.forEach((module) => {
-      dependencyContainer.resolve(module);
-    });
-
-    const schema = [resolverSchema, ...this.schemas].reduce(
-      (schema1, schema2) =>
-        stitchSchemas({
-          subschemas: [{ schema: schema1 }, { schema: schema2 }],
-        })
-    );
-
-    const app = new Koa();
-
-    const { graphiql, port, host } = this.serverConfig;
-
-    const yoga = createYoga<Koa.ParameterizedContext>({
-      schema,
-      graphiql,
-      context: this.context,
-    });
-
-    // Bind GraphQL Yoga to `/graphql` endpoint
-    app.use(async (ctx) => {
-      // Second parameter adds Koa's context into GraphQL Context
-      const response = await yoga.handleNodeRequest(ctx.req, ctx);
-
-      // Set status code
-      ctx.status = response.status;
-
-      // Set headers
-      response.headers.forEach((value, key) => {
-        ctx.append(key, value);
-      });
-
-      // Converts ReadableStream to a NodeJS Stream
-      ctx.body = response.body;
-    });
-
-    this.server = app.listen({ port, host }, () => {
-      log.info(`GraphQL Server listening on ${host}:${port}`);
-    });
+    await this.graphqlServer.startServer();
   }
 
   public async close() {
-    if (this.server !== undefined) {
-      const { server } = this;
-
-      await new Promise<void>((res) => {
-        server.close((error) => {
-          if (error !== undefined) {
-            log.error(error);
-          }
-          res();
-        });
-      });
+    if (this.graphqlServer !== undefined) {
+      await this.graphqlServer.close();
     }
   }
 }

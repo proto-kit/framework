@@ -1,6 +1,6 @@
 import { buildSchemaSync, NonEmptyArray } from "type-graphql";
 import { DependencyContainer, injectable } from "tsyringe";
-import { SequencerModule } from "@proto-kit/sequencer";
+import { closeable, SequencerModule } from "@proto-kit/sequencer";
 import { log, noop, TypedClass } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { stitchSchemas } from "@graphql-tools/stitch";
@@ -11,7 +11,7 @@ import type { GraphqlModule } from "./GraphqlModule";
 
 type Server = ReturnType<Koa["listen"]>;
 
-interface GraphqlServerOptions {
+export interface GraphqlServerOptions {
   host: string;
   port: number;
   graphiql: boolean;
@@ -27,6 +27,7 @@ function assertArrayIsNotEmpty<T>(
 }
 
 @injectable()
+@closeable()
 export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
   private readonly modules: TypedClass<GraphqlModule<unknown>>[] = [];
 

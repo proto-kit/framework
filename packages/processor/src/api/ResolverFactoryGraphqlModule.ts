@@ -1,6 +1,5 @@
 import {
-  GraphqlModulesRecord,
-  GraphqlSequencerModule,
+  GraphqlServer,
   ResolverFactoryGraphqlModule as BaseResolverFactoryGraphqlModule,
   graphqlModule,
 } from "@proto-kit/api";
@@ -62,9 +61,7 @@ export class ResolverFactoryGraphqlModule<
 
   public database: PrismaDatabaseConnection<PrismaClient> | undefined;
 
-  public constructor(
-    public graphqlServer: GraphqlSequencerModule<GraphqlModulesRecord>
-  ) {
+  public constructor(public graphqlServer: GraphqlServer) {
     super();
   }
 
