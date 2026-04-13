@@ -1,6 +1,8 @@
-import { spawn } from "child_process";
+import { execSync } from "child_process";
 
-const STARTER_KIT_REPO = "https://github.com/proto-kit/starter-kit.git";
+import degit from "degit";
+
+const STARTER_KIT_REPO = "proto-kit/starter-kit#develop";
 
 export interface InitArgs {
   name?: string;
@@ -11,32 +13,35 @@ export default async function (args: InitArgs): Promise<void> {
 
   console.log(`\nCloning starter-kit into ./${targetDir}...\n`);
 
-  return await new Promise<void>((resolve, reject) => {
-    const child = spawn("git", ["clone", STARTER_KIT_REPO, targetDir], {
-      stdio: "inherit",
+  try {
+    const emitter = degit(STARTER_KIT_REPO);
+
+    emitter.on("info", (info) => {
+      console.log(info.message);
     });
 
-    child.on("error", (error) => {
-      console.error("Failed to clone starter-kit:", error);
-      reject(error);
+    await emitter.clone(targetDir);
+
+    execSync("git init -b develop", { cwd: targetDir, stdio: "ignore" });
+    execSync("git add -A", { cwd: targetDir, stdio: "ignore" });
+    // eslint-disable-next-line @typescript-eslint/quotes
+    execSync('git commit -m "initial commit"', {
+      cwd: targetDir,
+      stdio: "ignore",
     });
 
-    child.on("exit", (code) => {
-      if (code !== null && code !== 0) {
-        reject(new Error(`git clone failed with exit code ${code}`));
-      } else {
-        console.log(`\nProject created at ./${targetDir}`);
-        console.log("\nNext steps:");
-        console.log(`  cd ${targetDir}`);
-        console.log("  pnpm install");
-        console.log("  pnpm env:development prisma:generate");
-        console.log("  pnpm env:inmemory dev");
-        console.log("  ✨ You're all set. Enjoy coding! ✨");
-        console.log(
-          "\nFor more details, see the README.md in the project directory.\n"
-        );
-        resolve();
-      }
-    });
-  });
+    console.log(`\nProject created at ./${targetDir}`);
+    console.log("\nNext steps:");
+    console.log(`  cd ${targetDir}`);
+    console.log("  pnpm install");
+    console.log("  pnpm env:development prisma:generate");
+    console.log("  pnpm env:inmemory dev");
+    console.log("  ✨ You're all set. Enjoy coding! ✨");
+    console.log(
+      "\nFor more details, see the README.md in the project directory.\n"
+    );
+  } catch (error) {
+    console.error("Failed to initialize project:", error);
+    throw error;
+  }
 }

@@ -22,6 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "@inquirer/figures": "^2.0.3",
+    "degit": "^2.8.4",
     "dotenv": "^17.2.3",
     "inquirer": "^9.3.0",
     "kleur": "^4.1.5",
@@ -35,17 +36,18 @@
   "peerDependencies": {
     "@proto-kit/api": "*",
     "@proto-kit/common": "*",
+    "@proto-kit/indexer": "*",
     "@proto-kit/library": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "@proto-kit/stack": "*",
-    "@proto-kit/indexer": "*",
     "o1js": "^2.10.0",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
+    "@types/degit": "^2.8.6",
     "@types/inquirer": "^9.0.9",
     "@types/node": "^20.19.24",
     "@types/yargs": "17.0.32"
