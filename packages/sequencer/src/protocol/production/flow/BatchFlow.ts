@@ -65,16 +65,20 @@ export class BatchFlow {
     }
   }
 
-  private dummySTProof() {
-    return this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof.dummy(
+  private async dummySTProof() {
+    const program =
+      await this.protocol.stateTransitionProver.zkProgrammable.zkProgram();
+    return await program[0].Proof.dummy(
       StateTransitionProverPublicInput.empty(),
       StateTransitionProverPublicOutput.empty(),
       2
     );
   }
 
-  private dummyTransactionProof() {
-    return this.protocol.transactionProver.zkProgrammable.zkProgram[0].Proof.dummy(
+  private async dummyTransactionProof() {
+    const program =
+      await this.protocol.transactionProver.zkProgrammable.zkProgram();
+    return await program[0].Proof.dummy(
       TransactionProverPublicInput.empty(),
       TransactionProverPublicInput.empty(),
       2

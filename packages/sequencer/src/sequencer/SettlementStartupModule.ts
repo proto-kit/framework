@@ -7,7 +7,7 @@ import {
 } from "@proto-kit/common";
 
 import { FlowCreator } from "../worker/flow/Flow";
-import { CircuitCompilerTask } from "../protocol/production/tasks/CircuitCompilerTask";
+import { SettlementCompileTask } from "../protocol/production/tasks/compile/SettlementCompileTask";
 
 @injectable()
 export class SettlementStartupModule {
@@ -15,7 +15,7 @@ export class SettlementStartupModule {
   public constructor(
     private readonly compileRegistry: CompileRegistry,
     private readonly flowCreator: FlowCreator,
-    private readonly compileTask: CircuitCompilerTask
+    private readonly compileTask: SettlementCompileTask
   ) {}
 
   // TODO Compile only individual contracts - this however runs into the
@@ -29,7 +29,6 @@ export class SettlementStartupModule {
         this.compileTask,
         {
           existingArtifacts: this.compileRegistry.getAllArtifacts(),
-          targets: ["Settlement"],
           runtimeVKRoot: undefined,
         },
         async (result) => res(result)

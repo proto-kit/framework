@@ -39,6 +39,7 @@ import {
   SettlementModule,
   SettlementProvingTask,
   VanillaTaskWorkerModules,
+  SettlementCompileTask,
 } from "../../src";
 
 import { Withdrawals } from "./mocks/Withdrawals";
@@ -80,6 +81,7 @@ export const settlementOnlyTestFn = (
         },
         {
           SettlementProvingTask,
+          SettlementCompileTask,
         }
       )
     );

@@ -21,6 +21,8 @@ import { SettlementUtils } from "../../utils/SettlementUtils";
 
 @injectable()
 export class BridgingDeployInteraction implements DeployInteraction {
+  private utils: SettlementUtils;
+
   public constructor(
     @inject("AddressRegistry")
     private readonly addressRegistry: AddressRegistry,
@@ -33,7 +35,9 @@ export class BridgingDeployInteraction implements DeployInteraction {
     private readonly feeStrategy: FeeStrategy,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender
-  ) {}
+  ) {
+    this.utils = new SettlementUtils(this.baseLayer, this.signer);
+  }
 
   protected settlementContractModule(): SettlementContractModule<BridgingSettlementModulesRecord> {
     return this.protocol.dependencyContainer.resolve(
@@ -59,7 +63,8 @@ export class BridgingDeployInteraction implements DeployInteraction {
 
     const feepayer = this.signer.getFeepayerKey();
 
-    const nonce = options?.nonce ?? 0;
+    const nonce =
+      options?.nonce ?? (await this.utils.fetchNonce(feepayer)) ?? 0;
 
     const sm = this.settlementContractModule();
     const {

@@ -4,13 +4,12 @@ import {
   PlainZkProgram,
   ZkProgrammable,
 } from "@proto-kit/common";
-import { Bool, Field, Proof, UInt64, ZkProgram } from "o1js";
+import { Field, Proof, UInt64, ZkProgram } from "o1js";
 import "reflect-metadata";
 
 import {
   MethodPublicOutput,
   NetworkState,
-  AuthorizedTransaction,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../src";
@@ -38,7 +37,9 @@ class RuntimeZkProgrammable extends ZkProgrammable<
     return new MockAppChain();
   }
 
-  zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
+  public async zkProgramFactory(): Promise<
+    PlainZkProgram<undefined, MethodPublicOutput>[]
+  > {
     const program = ZkProgram({
       name: "BlockProverTestProgram",
       publicOutput: MethodPublicOutput,
@@ -48,9 +49,12 @@ class RuntimeZkProgrammable extends ZkProgrammable<
     return [
       {
         name: program.name,
+        publicInputType: program.publicInputType,
+        publicOutputType: program.publicOutputType,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
+        maxProofsVerified: program.maxProofsVerified.bind(program),
         methods: {},
         Proof: ZkProgram.Proof(program),
       },

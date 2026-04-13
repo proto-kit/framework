@@ -26,6 +26,9 @@ export interface StorageDependencyMinimumDependencies<
   messageStorage: DependencyDeclaration<MessageStorage, Module>;
   settlementStorage: DependencyDeclaration<SettlementStorage, Module>;
   transactionStorage: DependencyDeclaration<TransactionStorage, Module>;
+
+  asyncTreeStore: DependencyDeclaration<AsyncMerkleTreeStore, Module>;
+  unprovenTreeStore: DependencyDeclaration<AsyncMerkleTreeStore, Module>;
 }
 
 export interface DatabaseDependencyFactory<T> {

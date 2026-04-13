@@ -38,7 +38,7 @@ export class BlockStorageNetworkStateModule
   }
 
   public async getUnprovenNetworkState(): Promise<NetworkState | undefined> {
-    const latestBlock = await this.unprovenStorage.getLatestBlock();
+    const latestBlock = await this.unprovenQueue.getLatestBlockAndResult();
     return latestBlock?.block.networkState.during;
   }
 
@@ -47,6 +47,8 @@ export class BlockStorageNetworkStateModule
    * with afterBundle() hooks executed
    */
   public async getStagedNetworkState(): Promise<NetworkState | undefined> {
+    // TODO Result could be null here, add method that specifically looks for the
+    //  last block with a result
     const result = await this.unprovenStorage.getLatestBlock();
     return result?.result.afterNetworkState;
   }

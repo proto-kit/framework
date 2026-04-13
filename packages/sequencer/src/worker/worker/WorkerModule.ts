@@ -7,8 +7,6 @@ import {
   ModulesRecord,
   NoConfig,
   Presets,
-  ResolvableModules,
-  StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
 import { ReturnType } from "@proto-kit/protocol";
@@ -23,16 +21,15 @@ import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingT
 import { Task } from "../flow/Task";
 import { TaskQueue } from "../queue/TaskQueue";
 import { StateTransitionTask } from "../../protocol/production/tasks/StateTransitionTask";
-import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
 import { closeable } from "../../sequencer/builder/Closeable";
 import { StateTransitionReductionTask } from "../../protocol/production/tasks/StateTransitionReductionTask";
 import { TransactionProvingTask } from "../../protocol/production/tasks/TransactionProvingTask";
 import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
 import { TransactionReductionTask } from "../../protocol/production/tasks/TransactionReductionTask";
+import { WorkerRegistrationTask } from "../startup/WorkerRegistrationTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
-import { WorkerRegistrationTask } from "./startup/WorkerRegistrationTask";
 
 // Temporary workaround against the compiler emitting
 // import("common/dist") inside the library artifacts
@@ -41,7 +38,7 @@ export { TypedClass };
 
 export type TaskWorkerModulesRecord = ModulesRecord<
   // TODO any -> unknown
-  TypedClass<TaskWorkerModule & Task<any, any>>
+  TypedClass<TaskWorkerModule<unknown> & Task<any, any>>
 >;
 
 type WorkerModuleEvents = { ready: [boolean] };
@@ -62,9 +59,7 @@ export class WorkerModule<Tasks extends TaskWorkerModulesRecord>
 
   public containerEvents = new EventEmitter<WorkerModuleEvents>();
 
-  private worker?: FlowTaskWorker<
-    InstanceType<ResolvableModules<Tasks>[StringKeyOf<Tasks>]>[]
-  > = undefined;
+  private worker?: FlowTaskWorker = undefined;
 
   public static from<Tasks extends TaskWorkerModulesRecord>(
     modules: Tasks
@@ -96,14 +91,17 @@ export class WorkerModule<Tasks extends TaskWorkerModulesRecord>
     return this.container.resolve<TaskQueue>("TaskQueue");
   }
 
-  public async start(): Promise<void> {
-    const tasks = this.moduleNames.map((moduleName) => {
-      this.assertIsValidModuleName(moduleName);
+  public tasks() {
+    return this.container.resolveAll<Task<unknown, unknown>>("Task");
+  }
 
-      const task = this.resolve(moduleName);
-      log.debug(`Resolved task ${task.name}`);
-      return task;
-    });
+  public async start(): Promise<void> {
+    const tasks = this.tasks();
+
+    log.debug(
+      "Resolved tasks",
+      tasks.map((t) => t.name)
+    );
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
     this.worker = worker;
@@ -137,7 +135,6 @@ export class VanillaTaskWorkerModules {
       TransactionReductionTask,
       BlockReductionTask,
       NewBlockTask,
-      CircuitCompilerTask,
       WorkerRegistrationTask,
     } satisfies TaskWorkerModulesRecord;
   }
@@ -159,7 +156,6 @@ export class VanillaTaskWorkerModules {
       NewBlockTask: {},
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
-      CircuitCompilerTask: {},
       WorkerRegistrationTask: {},
     } satisfies ModulesConfig<
       ReturnType<typeof VanillaTaskWorkerModules.allTasks>
