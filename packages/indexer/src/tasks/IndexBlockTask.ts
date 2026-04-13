@@ -55,7 +55,7 @@ export class IndexBlockTask
         async (tx) => await this.transactionStorage.pushUserTransaction(tx, 0)
       )
     );
-    if (pushResults.some((x) => x)) {
+    if (pushResults.some((x) => !x)) {
       log.error(
         "Some transactions haven't been pushed, this will lead to constraint errors!"
       );

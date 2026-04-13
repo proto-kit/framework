@@ -90,6 +90,8 @@ model Block {
   beforeBlockStateTransitions Json @db.Json
 
   parentHash String? @unique
+  parent     Block?  @relation("Parent", fields: [parentHash], references: [hash])
+  successor  Block?  @relation("Parent")
 
   transactions TransactionExecutionResult[]
   result       BlockResult?
