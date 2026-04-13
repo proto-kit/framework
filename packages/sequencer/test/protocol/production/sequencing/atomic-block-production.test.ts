@@ -53,7 +53,7 @@ describe("atomic block production", () => {
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},

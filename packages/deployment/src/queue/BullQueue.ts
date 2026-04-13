@@ -119,6 +119,6 @@ export class BullQueue
   public async close() {
     await this.closeQueues();
 
-    // Closing of active workers is handled by the LocalTaskWorkerModule
+    // Closing of active workers is handled by the WorkerModule
   }
 }

@@ -31,10 +31,8 @@ import {
   Sequencer,
   SequencerModule,
   VanillaTaskWorkerModules,
-  DatabasePruneModule,
   AsyncLinkedLeafStore,
   AppChain,
-  BlockProducerModule,
   DatabaseDependencyFactory,
   AsyncMerkleTreeStore,
 } from "../../src";
@@ -127,7 +125,6 @@ export function testBlockProduction<
     });
 
     const sequencerClass = Sequencer.from({
-      DatabasePruneModule,
       ...testingSequencerModules({}),
       Database: database,
     });
@@ -147,15 +144,12 @@ export function testBlockProduction<
 
     app.configure({
       Sequencer: {
-        DatabasePruneModule: {
-          pruneOnStartup: true,
-        },
         Database: databaseConfig,
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
@@ -703,10 +697,9 @@ export function testBlockProduction<
     async (numBlocks) => {
       log.setLevel("INFO");
 
-      (sequencer.resolve("BlockProducerModule") as BlockProducerModule).config =
-        {
-          maximumBlockSize: 5,
-        };
+      sequencer.resolve("Mempool").config = {
+        targetBlockSize: 5,
+      };
 
       const privateKey = PrivateKey.random();
 

@@ -1,6 +1,6 @@
 import {
   BatchProducerModule,
-  LocalTaskWorkerModule,
+  WorkerModule,
   PrivateMempool,
   SequencerModulesRecord,
   BlockProducerModule,
@@ -37,8 +37,8 @@ export type AdditionalSequencerModules = SequencerModulesRecord &
   MinimumAdditionalSequencerModules;
 
 export type SimpleSequencerWorkerModulesRecord = {
-  LocalTaskWorkerModule: TypedClass<
-    LocalTaskWorkerModule<ReturnType<typeof VanillaTaskWorkerModules.allTasks>>
+  WorkerModule: TypedClass<
+    WorkerModule<ReturnType<typeof VanillaTaskWorkerModules.allTasks>>
   >;
   TaskQueue: TypedClass<TaskQueue>;
 };
@@ -49,9 +49,7 @@ export class SimpleSequencerModules {
     SequencerModules extends SequencerModulesRecord,
   >(queue: TypedClass<QueueModule>, additionalModules: SequencerModules) {
     return {
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
       TaskQueue: queue,
       ...additionalModules,
     } satisfies SimpleSequencerWorkerModulesRecord;
@@ -96,9 +94,7 @@ export class SimpleSequencerModules {
 
   public static defaultConfig() {
     return {
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       Mempool: {},
       BatchProducerModule: {},
@@ -108,9 +104,9 @@ export class SimpleSequencerModules {
 
   public static defaultWorkerConfig() {
     return {
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     } satisfies ModulesConfig<
-      Pick<SimpleSequencerWorkerModulesRecord, "LocalTaskWorkerModule">
+      Pick<SimpleSequencerWorkerModulesRecord, "WorkerModule">
     >;
   }
 }

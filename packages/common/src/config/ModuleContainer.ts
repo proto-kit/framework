@@ -98,6 +98,11 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
     : never;
 };
 
+export type CombinedModuleContainerConfig<
+  Modules extends ModulesRecord,
+  ContainerConfig = NoConfig,
+> = ModulesConfig<Modules> & { containerConfig?: ContainerConfig };
+
 /**
  * This type make any config partial (i.e. optional) up to the first level
  * So { Module: { a: { b: string } } }
@@ -139,9 +144,18 @@ export interface ModuleContainerLike {
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
+ *
+ * @typeParam Modules - The record of child module classes.
+ * @typeParam ContainerConfig - Optional config type for keys that belong to the
+ *   container itself (not forwarded to child modules). Defaults to NoConfig.
  */
-export class ModuleContainer<Modules extends ModulesRecord>
-  extends ConfigurableModule<ModulesConfig<Modules>>
+export class ModuleContainer<
+  Modules extends ModulesRecord,
+  ContainerConfig = NoConfig,
+>
+  extends ConfigurableModule<
+    CombinedModuleContainerConfig<Modules, ContainerConfig>
+  >
   implements ModuleContainerLike
 {
   /**
@@ -157,6 +171,14 @@ export class ModuleContainer<Modules extends ModulesRecord>
 
   public constructor(public definition: Modules) {
     super();
+  }
+
+  /**
+   * Returns the container's own configuration.
+   */
+  public get containerConfig(): ContainerConfig {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return this.config?.containerConfig as ContainerConfig;
   }
 
   /**
@@ -220,6 +242,12 @@ export class ModuleContainer<Modules extends ModulesRecord>
     return Object.prototype.hasOwnProperty.call(modules, moduleName);
   }
 
+  private isValidModuleNameTuple(
+    module: [string, BaseModuleType]
+  ): module is [StringKeyOf<Modules>, BaseModuleType] {
+    return Object.prototype.hasOwnProperty.call(this.definition, module[0]);
+  }
+
   public assertContainerInitialized(
     container: DependencyContainer | undefined
   ): asserts container is DependencyContainer {
@@ -246,26 +274,26 @@ export class ModuleContainer<Modules extends ModulesRecord>
    * @param modules
    */
   protected registerModules(modules: Modules) {
-    Object.keys(modules).forEach((moduleName) => {
-      if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-        this.assertIsValidModuleName(moduleName);
+    const moduleClasses = Object.entries(modules).filter(
+      this.isValidModuleNameTuple.bind(this)
+    );
 
-        log.debug(`Registering module: ${moduleName}`);
+    moduleClasses.forEach(([moduleName, useClass]) => {
+      log.debug(`Registering module: ${moduleName}`);
 
-        const useClass = modules[moduleName];
+      this.container.register(
+        moduleName,
+        { useClass },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+      this.onAfterModuleResolution(moduleName);
 
-        this.container.register(
-          moduleName,
-          { useClass },
-          { lifecycle: Lifecycle.ContainerScoped }
-        );
-        this.onAfterModuleResolution(moduleName);
+      this.registerAliases(moduleName, useClass);
+    });
 
-        this.registerAliases(moduleName, useClass);
-
-        if (this.isDependencyFactory(useClass)) {
-          this.useDependencyFactory(useClass, moduleName);
-        }
+    moduleClasses.forEach(([moduleName, clazz]) => {
+      if (this.isDependencyFactory(clazz)) {
+        this.useDependencyFactory(clazz, moduleName);
       }
     });
   }
@@ -296,25 +324,34 @@ export class ModuleContainer<Modules extends ModulesRecord>
    * before the first resolution.
    * @param config
    */
-  public configure(config: ModulesConfig<Modules>) {
+  public configure(
+    config: CombinedModuleContainerConfig<Modules, ContainerConfig>
+  ) {
     this.config = config;
   }
 
-  public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
-    this.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      RecursivePartial<ModulesConfig<Modules>>
-    >(this.currentConfig ?? {}, config);
+  public configurePartial(
+    config: RecursivePartial<
+      CombinedModuleContainerConfig<Modules, ContainerConfig>
+    >
+  ) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.config = merge(
+      this.currentConfig ?? {},
+      config
+    ) as CombinedModuleContainerConfig<Modules, ContainerConfig>;
   }
 
   public get config() {
     return super.config;
   }
 
-  public set config(config: ModulesConfig<Modules>) {
+  public set config(
+    config: CombinedModuleContainerConfig<Modules, ContainerConfig>
+  ) {
     super.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      ModulesConfig<Modules>
+      CombinedModuleContainerConfig<Modules, ContainerConfig> | NoConfig,
+      CombinedModuleContainerConfig<Modules, ContainerConfig>
     >(this.currentConfig ?? {}, config);
   }
 
