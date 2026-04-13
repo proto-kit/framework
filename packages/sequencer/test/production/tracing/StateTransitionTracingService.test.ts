@@ -20,8 +20,8 @@ import {
   ConsoleTracer,
   CachedLinkedLeafStore,
   InMemoryAsyncMerkleTreeStore,
-  InMemoryAsyncLinkedLeafStore,
 } from "../../../src";
+import { InMemoryAsyncLinkedLeafStore } from "../../../src/storage/inmemory/InMemoryAsyncLinkedLeafStore";
 
 function createST(obj: {
   path: string;

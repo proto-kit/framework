@@ -54,8 +54,6 @@ export class BatchProducerModule extends SequencerModule {
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("Database")
     private readonly database: Database,
-    @inject("TreeDatabase")
-    private readonly treeDatabase: Database,
     private readonly batchFlow: BatchFlow,
     private readonly blockProofSerializer: BlockProofSerializer,
     private readonly batchTraceService: BatchTracingService
@@ -90,11 +88,8 @@ export class BatchProducerModule extends SequencerModule {
       // Apply state changes to current MerkleTreeStore
       await this.database.executeInTransaction(async () => {
         await this.batchStorage.pushBatch(batchWithStateDiff.batch);
+        await batchWithStateDiff.changes.mergeIntoParent();
       });
-      await batchWithStateDiff.changes.mergeIntoParent(
-        this.database,
-        this.treeDatabase
-      );
 
       // TODO Add transition from unproven to proven state for stateservice
       //  This needs proper DB-level masking
