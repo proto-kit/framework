@@ -1,5 +1,6 @@
 import {
   PendingTransaction,
+  task,
   Task,
   TaskSerializer,
   TaskWorkerModule,
@@ -11,6 +12,7 @@ import { inject, injectable } from "tsyringe";
 import { IndexPendingTxTaskParametersSerializer } from "./IndexPendingTxTaskParameters";
 
 @injectable()
+@task()
 export class IndexPendingTxTask
   extends TaskWorkerModule
   implements Task<PendingTransaction, string | void>

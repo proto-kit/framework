@@ -256,9 +256,7 @@ export class SettlementModule
       const errorList = missing
         .map((m) => `  ${m.address}: ${m.error}`)
         .join("\n");
-      throw new Error(`
-        Missing contracts:\n${errorList}
-        `);
+      throw new Error(`Missing contracts:\n${errorList} `);
     }
   }
 }

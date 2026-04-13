@@ -43,13 +43,19 @@ export interface SequencerCoreDependencies extends DependencyRecord<SequencerCor
 }
 
 export interface LocalSequencerCoreConfig {
-  SequencerStartupModule: NoConfig;
-  BlockProducerModule: BlockConfig;
+  SequencerStartupModule?: NoConfig;
+  BlockProducerModule?: BlockConfig;
 }
 
 export interface SequencerCoreConfig extends LocalSequencerCoreConfig {
-  BatchProducerModule: NoConfig;
+  BatchProducerModule?: NoConfig;
 }
+
+const childConfigDefaults = {
+  SequencerStartupModule: {},
+  BlockProducerModule: {},
+  BatchProducerModule: {},
+} satisfies Required<SequencerCoreConfig>;
 
 @sequencerModule()
 @closeable()
@@ -76,8 +82,12 @@ export class LocalSequencerCoreModule extends SequencerModule<LocalSequencerCore
   }
 
   public create() {
-    this.sequencerStartupModule.config = this.config.SequencerStartupModule;
-    this.blockProducerModule.config = this.config.BlockProducerModule;
+    this.sequencerStartupModule.config =
+      this.config.SequencerStartupModule ??
+      childConfigDefaults.SequencerStartupModule;
+    this.blockProducerModule.config =
+      this.config.BlockProducerModule ??
+      childConfigDefaults.BlockProducerModule;
   }
 
   public async start(): Promise<void> {
@@ -119,9 +129,15 @@ export class SequencerCoreModule extends SequencerModule<SequencerCoreConfig> {
   }
 
   public create() {
-    this.sequencerStartupModule.config = this.config.SequencerStartupModule;
-    this.blockProducerModule.config = this.config.BlockProducerModule;
-    this.batchProducerModule.config = this.config.BatchProducerModule;
+    this.sequencerStartupModule.config =
+      this.config.SequencerStartupModule ??
+      childConfigDefaults.SequencerStartupModule;
+    this.blockProducerModule.config =
+      this.config.BlockProducerModule ??
+      childConfigDefaults.BlockProducerModule;
+    this.batchProducerModule.config =
+      this.config.BatchProducerModule ??
+      childConfigDefaults.BatchProducerModule;
   }
 
   public async start(): Promise<void> {

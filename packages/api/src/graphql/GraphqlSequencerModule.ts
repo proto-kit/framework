@@ -2,7 +2,6 @@ import { buildSchemaSync, NonEmptyArray } from "type-graphql";
 import { Closeable, closeable, SequencerModule } from "@proto-kit/sequencer";
 import {
   ChildContainerProvider,
-  Configurable,
   CombinedModuleContainerConfig,
   log,
   ModuleContainer,
@@ -48,7 +47,11 @@ function assertArrayIsNotEmpty<T>(
 @closeable()
 export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   extends ModuleContainer<GraphQLModules, GraphqlServerConfig>
-  implements Configurable<unknown>, SequencerModule<unknown>, Closeable
+  implements
+    SequencerModule<
+      CombinedModuleContainerConfig<GraphQLModules, GraphqlServerConfig>
+    >,
+    Closeable
 {
   private readonly modules: TypedClass<GraphqlModule<unknown>>[] = [];
 

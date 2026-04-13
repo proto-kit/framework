@@ -9,9 +9,9 @@ export default async function (publicKey: string) {
   const fundingAmount = 1000 * 1e9;
 
   const net = Mina.Network({
-    mina: `${getRequiredEnv("MINA_NODE_GRAPHQL_HOST")}:${getRequiredEnv("MINA_NODE_GRAPHQL_PORT")}/graphql`,
-    archive: `${getRequiredEnv("MINA_ARCHIVE_GRAPHQL_HOST")}:${getRequiredEnv("MINA_ARCHIVE_GRAPHQL_PORT")}/graphql`,
-    lightnetAccountManager: `${getRequiredEnv("MINA_ACCOUNT_MANAGER_HOST")}:${getRequiredEnv("MINA_ACCOUNT_MANAGER_PORT")}`,
+    mina: getRequiredEnv("MINA_NODE_GRAPHQL"),
+    archive: getRequiredEnv("MINA_ARCHIVE_GRAPHQL"),
+    lightnetAccountManager: getRequiredEnv("MINA_ACCOUNT_MANAGER_URL"),
   });
 
   Mina.setActiveInstance(net);
