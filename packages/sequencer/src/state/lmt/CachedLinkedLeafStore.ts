@@ -14,7 +14,6 @@ import groupBy from "lodash/groupBy";
 import { AsyncLinkedLeafStore } from "../async/AsyncLinkedLeafStore";
 import { CachedMerkleTreeStore } from "../merkle/CachedMerkleTreeStore";
 import { AsyncMerkleTreeStore } from "../async/AsyncMerkleTreeStore";
-import { Database } from "../../storage/Database";
 
 export class CachedLinkedLeafStore implements LinkedLeafStore {
   private writeCache: {
@@ -27,7 +26,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
 
   private constructor(
     private readonly parent: AsyncLinkedLeafStore,
-    parentTreeStore: AsyncMerkleTreeStore
+    private readonly parentTreeStore: AsyncMerkleTreeStore
   ) {
     this.treeCache = new CachedMerkleTreeStore(parentTreeStore);
   }
@@ -216,37 +215,24 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
     await this.preloadKeysInternal(paths);
   }
 
-  public async mergeLeavesIntoParent() {
+  // This merges the cache into the parent tree and resets the cache, but not the
+  //  in-memory merkle tree.
+  public async mergeIntoParent(): Promise<void> {
     const leaves = this.getWrittenLeaves();
     // In case no state got set we can skip this step
     if (leaves.length === 0) {
       return;
     }
 
+    await this.parent.openTransaction();
+
     this.parent.writeLeaves(Object.values(leaves));
 
-    await this.parent.flush();
+    await this.parent.commit();
+
+    await this.treeCache.mergeIntoParent();
 
     this.resetWrittenLeaves();
-  }
-
-  public async mergeTreeIntoParent() {
-    await this.treeCache.mergeIntoParent();
-  }
-
-  // This merges the cache into the parent tree and resets the cache, but not the
-  //  in-memory merkle tree.
-  public async mergeIntoParent(
-    stateDb: Database,
-    treeDb: Database
-  ): Promise<void> {
-    await stateDb.executeInTransaction(async () => {
-      await this.mergeLeavesIntoParent();
-    });
-
-    await treeDb.executeInTransaction(async () => {
-      await this.mergeTreeIntoParent();
-    });
   }
 
   public getPreviousLeaf(path: bigint) {

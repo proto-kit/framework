@@ -1,4 +1,4 @@
-import { StoredLeaf } from "@proto-kit/common";
+import { noop, StoredLeaf } from "@proto-kit/common";
 import { AsyncLinkedLeafStore, trace, Tracer } from "@proto-kit/sequencer";
 import { injectable } from "tsyringe";
 import { Prisma } from "@prisma/client";
@@ -23,8 +23,12 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
     }
   }
 
+  public async openTransaction(): Promise<void> {
+    noop();
+  }
+
   @trace("LinkedLeafStore.commit")
-  public async flush(): Promise<void> {
+  public async commit(): Promise<void> {
     if (this.cache.length > 0) {
       const data = this.cache.map((entry) => ({
         path: entry.leaf.path.toString(),

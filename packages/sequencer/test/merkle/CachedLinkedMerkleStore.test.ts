@@ -30,8 +30,7 @@ describe("cached linked merkle store", () => {
     const tmpTree = new LinkedMerkleTree(cachedStore.treeStore, cachedStore);
     tmpTree.setLeaf(5n, 10n);
 
-    await cachedStore.mergeLeavesIntoParent();
-    await cachedStore.mergeTreeIntoParent();
+    await cachedStore.mergeIntoParent();
 
     cache1 = await CachedLinkedLeafStore.new(mainStore, mainTreeStore);
     tree1 = new LinkedMerkleTree(cache1.treeStore, cache1);
@@ -85,8 +84,7 @@ describe("cached linked merkle store", () => {
     expectDefined(cache1.treeStore.getNode(1n, 0));
 
     tree1.setLeaf(10n, 10n);
-    await cache1.mergeLeavesIntoParent();
-    await cache1.mergeTreeIntoParent();
+    await cache1.mergeIntoParent();
 
     const leaf5 = tree1.getLeaf(5n);
     const leaf10 = tree1.getLeaf(10n);
@@ -121,8 +119,7 @@ describe("cached linked merkle store", () => {
     tree1.setLeaf(11n, 11n);
     tree1.setLeaf(12n, 12n);
     tree1.setLeaf(13n, 13n);
-    await cache1.mergeLeavesIntoParent();
-    await cache1.mergeTreeIntoParent();
+    await cache1.mergeIntoParent();
 
     const cache2 = new SyncCachedLinkedLeafStore(cache1);
     await cache2.preloadKeys([14n]);
@@ -221,7 +218,7 @@ describe("cached linked merkle store", () => {
       leaf2.hash().toBigInt()
     );
     expect(tree1.getRoot()).not.toEqual(tree2.getRoot());
-    cache2.mergeIntoParent();
+    await cache2.mergeIntoParent();
     expect(tree1.getRoot()).toEqual(tree2.getRoot());
   });
 
@@ -232,8 +229,7 @@ describe("cached linked merkle store", () => {
     await cache1.preloadKeys([10n, 20n]);
     treeCache1.setLeaf(10n, 10n);
     treeCache1.setLeaf(20n, 20n);
-    await cache1.mergeLeavesIntoParent();
-    await cache1.mergeTreeIntoParent();
+    await cache1.mergeIntoParent();
 
     const cache2 = new SyncCachedLinkedLeafStore(cache1);
     const treeCache2 = new LinkedMerkleTree(cache2.treeStore, cache2);
@@ -389,8 +385,7 @@ describe("cached linked merkle store", () => {
     );
 
     // Now the mainstore has the new 15n root.
-    await cache1.mergeLeavesIntoParent();
-    await cache1.mergeTreeIntoParent();
+    await cache1.mergeIntoParent();
 
     const cachedStore = await CachedLinkedLeafStore.new(
       mainStore,

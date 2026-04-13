@@ -86,7 +86,6 @@ export * from "./storage/repositories/MessageStorage";
 export * from "./storage/repositories/TransactionStorage";
 export * from "./storage/inmemory/InMemoryDatabase";
 export * from "./storage/inmemory/InMemoryAsyncMerkleTreeStore";
-export * from "./storage/inmemory/InMemoryAsyncLinkedLeafStore";
 export * from "./storage/inmemory/InMemoryBlockStorage";
 export * from "./storage/inmemory/InMemoryBatchStorage";
 export * from "./storage/inmemory/InMemorySettlementStorage";
