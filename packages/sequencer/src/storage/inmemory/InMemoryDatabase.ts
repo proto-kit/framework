@@ -62,6 +62,9 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       asyncTreeStore: {
         useClass: InMemoryAsyncMerkleTreeStore,
       },
+      treeDatabase: {
+        useToken: "Database",
+      },
     };
   }
 
