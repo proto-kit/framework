@@ -44,7 +44,7 @@ export class SettlementCompileTask extends CircuitCompileTask {
       blockProducerModule === undefined
     ) {
       throw new Error(
-        "SettlementContractModule not configured but SettlementCompilerTask is - fix the configuration"
+        "SettlementContractModule not configured but SettlementCompileTask is - fix the configuration"
       );
     }
   }
