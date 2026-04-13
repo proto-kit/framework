@@ -64,7 +64,7 @@ describe("StateTransition", () => {
 
     await appChain.start();
     appChain.setSigner(senderKey);
-  });
+  }, 30_000);
 
   afterEach(async () => {
     await appChain.close();

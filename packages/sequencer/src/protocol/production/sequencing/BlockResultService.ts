@@ -188,7 +188,8 @@ export class BlockResultService {
   }))
   public async generateMetadataForNextBlock(
     block: Block,
-    merkleTreeStore: AsyncLinkedLeafStore,
+    leafStore: AsyncLinkedLeafStore,
+    treeStore: AsyncMerkleTreeStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
     stateService: AsyncStateService
   ): Promise<{
@@ -202,7 +203,7 @@ export class BlockResultService {
       block.beforeBlockStateTransitions
     );
 
-    const inMemoryStore = await CachedLinkedLeafStore.new(merkleTreeStore);
+    const inMemoryStore = await CachedLinkedLeafStore.new(leafStore, treeStore);
 
     const tree = await this.applyStateDiff(inMemoryStore, combinedDiff);
 

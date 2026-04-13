@@ -43,14 +43,14 @@ export class RedisConnectionModule
 
   public static dependencies(): Pick<
     StorageDependencyMinimumDependencies<{ redis: RedisConnectionModule }>,
-    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
+    "blockTreeStore" | "asyncTreeStore" | "unprovenTreeStore"
   > {
     return {
-      asyncMerkleStore: {
+      asyncTreeStore: {
         useGenerated: ({ redis }) =>
           new RedisMerkleTreeStore(redis, redis.tracer),
       },
-      unprovenMerkleStore: {
+      unprovenTreeStore: {
         useGenerated: ({ redis }) =>
           new RedisMerkleTreeStore(redis, redis.tracer, "unproven"),
       },

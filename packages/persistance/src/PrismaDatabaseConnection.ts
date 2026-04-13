@@ -13,6 +13,7 @@ import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
 import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStorage";
 import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
 import { PrismaTransactionStorage } from "./services/prisma/PrismaTransactionStorage";
+import { PrismaLinkedLeafStore } from "./services/prisma/PrismaLinkedLeafStore";
 
 export interface PrismaDatabaseConfig {
   // Either object-based config or connection string
@@ -57,7 +58,7 @@ export class PrismaDatabaseConnection
     StorageDependencyMinimumDependencies<{
       readonly prisma: PrismaDatabaseConnection;
     }>,
-    "blockTreeStore" | "asyncLinkedLeafStore" | "unprovenLinkedLeafStore"
+    "blockTreeStore" | "asyncTreeStore" | "unprovenTreeStore"
   > {
     return {
       asyncStateService: {
@@ -93,6 +94,26 @@ export class PrismaDatabaseConnection
       },
       transactionStorage: {
         useClass: PrismaTransactionStorage,
+      },
+
+      asyncLinkedLeafStore: {
+        useGenerated: (module) => {
+          return new PrismaLinkedLeafStore(
+            module.prisma,
+            module.prisma.tracer,
+            "batch"
+          );
+        },
+      },
+
+      unprovenLinkedLeafStore: {
+        useGenerated: (module) => {
+          return new PrismaLinkedLeafStore(
+            module.prisma,
+            module.prisma.tracer,
+            "block"
+          );
+        },
       },
     };
   }
