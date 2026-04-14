@@ -121,6 +121,7 @@ export class BridgingSettlementInteraction implements SettleInteraction {
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
       transactionHash,
+      createdAt: new Date(),
     };
   }
 }

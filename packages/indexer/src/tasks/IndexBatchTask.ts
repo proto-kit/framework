@@ -46,7 +46,11 @@ export class IndexBatchTask
       },
       fromJSON: (parameter: string) => {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return JSON.parse(parameter) as Batch;
+        const parsed = JSON.parse(parameter) as Batch;
+        return {
+          ...parsed,
+          createdAt: new Date(parsed.createdAt),
+        };
       },
     };
   }

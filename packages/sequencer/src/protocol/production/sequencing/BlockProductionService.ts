@@ -186,6 +186,7 @@ export class BlockProductionService {
         during: networkState,
       },
       beforeBlockStateTransitions,
+      createdAt: new Date(),
     };
 
     const hash = Block.hash(block);

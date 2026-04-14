@@ -23,6 +23,7 @@ export class TransactionMapper implements ObjectMapper<
   public mapIn(input: DBTransaction): PendingTransaction {
     return PendingTransaction.fromJSON({
       ...input,
+      createdAt: input.createdAt,
       signature: {
         r: input.signature_r,
         s: input.signature_s,
@@ -42,6 +43,7 @@ export class TransactionMapper implements ObjectMapper<
       signature_r: json.signature.r,
       signature_s: json.signature.s,
       hash: input.hash().toString(),
+      createdAt: input.createdAt,
     };
   }
 }

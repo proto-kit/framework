@@ -42,6 +42,7 @@ model Transaction {
   signature_s   String
 
   isMessage Boolean
+  createdAt DateTime
 
   executionResult TransactionExecutionResult?
   priority        TransactionPriority?
@@ -88,6 +89,7 @@ model Block {
   fromStateRoot               String
 
   beforeBlockStateTransitions Json @db.Json
+  createdAt DateTime
 
   parentHash String? @unique
   parent     Block?  @relation("Parent", fields: [parentHash], references: [hash])
@@ -104,6 +106,7 @@ model Batch {
   height Int @id
 
   proof Json @db.Json
+  createdAt DateTime
 
   blocks Block[]
 
@@ -128,6 +131,7 @@ model Settlement {
   // transaction String
   transactionHash      String @id
   promisedMessagesHash String
+  createdAt DateTime
 
   batches Batch[]
 }

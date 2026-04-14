@@ -5,6 +5,7 @@ export interface Batch {
   proof: JsonProof;
   blockHashes: string[];
   height: number;
+  createdAt: Date;
 }
 
 export interface SettleableBatch extends Batch {
