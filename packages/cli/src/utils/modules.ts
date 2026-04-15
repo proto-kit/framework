@@ -33,9 +33,9 @@ export const scriptModulesConfig = {
     network: {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       type: getRequiredEnv("MINA_NETWORK") as "local" | "lightnet" | "remote",
-      graphql: `${getRequiredEnv("MINA_NODE_GRAPHQL_HOST")}:${getRequiredEnv("MINA_NODE_GRAPHQL_PORT")}/graphql`,
-      archive: `${getRequiredEnv("MINA_ARCHIVE_GRAPHQL_HOST")}:${getRequiredEnv("MINA_ARCHIVE_GRAPHQL_PORT")}`,
-      accountManager: `${getRequiredEnv("MINA_ACCOUNT_MANAGER_HOST")}:${getRequiredEnv("MINA_ACCOUNT_MANAGER_PORT")}`,
+      graphql: getRequiredEnv("MINA_NODE_GRAPHQL"),
+      archive: getRequiredEnv("MINA_ARCHIVE_GRAPHQL"),
+      accountManager: getRequiredEnv("MINA_ACCOUNT_MANAGER_URL"),
     },
   },
   SettlementModule: {
