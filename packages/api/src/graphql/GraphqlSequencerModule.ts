@@ -1,5 +1,3 @@
-import assert from "node:assert";
-
 import { Closeable, closeable, SequencerModule } from "@proto-kit/sequencer";
 import {
   ChildContainerProvider,
@@ -33,7 +31,7 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   extends ModuleContainer<GraphQLModules, GraphqlServerOptions>
   implements Configurable<unknown>, SequencerModule<unknown>, Closeable
 {
-  private graphqlServer?: GraphqlServer;
+  private graphqlServer!: GraphqlServer;
 
   public static from<GraphQLModules extends GraphqlModulesRecord>(
     definition: GraphQLModules
@@ -68,12 +66,11 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
     this.graphqlServer = this.container.resolve("GraphqlServer");
+    this.graphqlServer.setContainer(this.container);
+    this.graphqlServer.config = this.getGraphqlConfig(this.graphqlServer);
   }
 
   public async start(): Promise<void> {
-    assert(this.graphqlServer !== undefined);
-    this.graphqlServer.setContainer(this.container);
-    this.graphqlServer.config = this.getGraphqlConfig(this.graphqlServer);
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition) {
       const moduleClass = this.definition[moduleName];
