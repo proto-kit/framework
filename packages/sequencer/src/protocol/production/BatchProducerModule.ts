@@ -18,6 +18,7 @@ import type { Database } from "../../storage/Database";
 import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../../state/lmt/CachedLinkedLeafStore";
 import { ensureNotBusy } from "../../helpers/BusyGuard";
+import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -47,7 +48,9 @@ const errors = {
 export class BatchProducerModule extends SequencerModule {
   public constructor(
     @inject("AsyncLinkedLeafStore")
-    private readonly merkleStore: AsyncLinkedLeafStore,
+    private readonly leafStore: AsyncLinkedLeafStore,
+    @inject("AsyncTreeStore")
+    private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("Database")
     private readonly database: Database,
@@ -149,7 +152,10 @@ export class BatchProducerModule extends SequencerModule {
       throw errors.blockWithoutTxs();
     }
 
-    const merkleTreeStore = await CachedLinkedLeafStore.new(this.merkleStore);
+    const merkleTreeStore = await CachedLinkedLeafStore.new(
+      this.leafStore,
+      this.merkleStore
+    );
 
     const trace = await this.batchTraceService.traceBatch(
       blocks.map((block) => block),

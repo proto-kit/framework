@@ -1,10 +1,13 @@
 import { Field } from "o1js";
 import { LinkedLeafStruct, log } from "@proto-kit/common";
 
-import { AsyncLinkedLeafStore } from "../src/state/async/AsyncLinkedLeafStore";
+import { AsyncMerkleTreeStore, AsyncLinkedLeafStore } from "../src";
 
 export namespace LinkedMerkleTreeIntegrity {
-  export async function checkIntegrity(store: AsyncLinkedLeafStore) {
+  export async function checkIntegrity(
+    store: AsyncLinkedLeafStore,
+    treeStore: AsyncMerkleTreeStore
+  ) {
     log.info("Checking tree integrity...");
 
     let currentPath = 0n;
@@ -18,7 +21,7 @@ export namespace LinkedMerkleTreeIntegrity {
 
       const leaf = leaves[0]!;
 
-      const treeValues = await store.treeStore.getNodesAsync([
+      const treeValues = await treeStore.getNodesAsync([
         { level: 0, key: leaf.index },
       ]);
       if (treeValues.length === 0 || treeValues[0] === undefined) {

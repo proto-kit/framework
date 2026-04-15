@@ -1,7 +1,6 @@
 import { Closeable, closeable, SequencerModule } from "@proto-kit/sequencer";
 import {
   ChildContainerProvider,
-  Configurable,
   CombinedModuleContainerConfig,
   dependencyFactory,
   log,
@@ -29,7 +28,11 @@ export type GraphqlSequencerModuleConfig<
 @dependencyFactory()
 export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   extends ModuleContainer<GraphQLModules, GraphqlServerOptions>
-  implements Configurable<unknown>, SequencerModule<unknown>, Closeable
+  implements
+    SequencerModule<
+      CombinedModuleContainerConfig<GraphQLModules, GraphqlServerOptions>
+    >,
+    Closeable
 {
   private graphqlServer!: GraphqlServer;
 

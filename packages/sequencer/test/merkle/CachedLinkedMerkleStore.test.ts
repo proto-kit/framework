@@ -9,24 +9,30 @@ import { Field, Poseidon } from "o1js";
 import { CachedLinkedLeafStore } from "../../src/state/lmt/CachedLinkedLeafStore";
 import { InMemoryAsyncLinkedLeafStore } from "../../src/storage/inmemory/InMemoryAsyncLinkedLeafStore";
 import { SyncCachedLinkedLeafStore } from "../../src/state/merkle/SyncCachedLinkedLeafStore";
+import { InMemoryAsyncMerkleTreeStore } from "../../src";
 
 describe("cached linked merkle store", () => {
   let mainStore: InMemoryAsyncLinkedLeafStore;
+  let mainTreeStore: InMemoryAsyncMerkleTreeStore;
 
   let cache1: CachedLinkedLeafStore;
   let tree1: LinkedMerkleTree;
 
   beforeEach(async () => {
     mainStore = new InMemoryAsyncLinkedLeafStore();
+    mainTreeStore = new InMemoryAsyncMerkleTreeStore();
 
-    const cachedStore = await CachedLinkedLeafStore.new(mainStore);
+    const cachedStore = await CachedLinkedLeafStore.new(
+      mainStore,
+      mainTreeStore
+    );
 
     const tmpTree = new LinkedMerkleTree(cachedStore.treeStore, cachedStore);
     tmpTree.setLeaf(5n, 10n);
 
     await cachedStore.mergeIntoParent();
 
-    cache1 = await CachedLinkedLeafStore.new(mainStore);
+    cache1 = await CachedLinkedLeafStore.new(mainStore, mainTreeStore);
     tree1 = new LinkedMerkleTree(cache1.treeStore, cache1);
   });
 
@@ -307,7 +313,7 @@ describe("cached linked merkle store", () => {
     expectDefined(leaf1);
     expectDefined(storedLeaf1);
     await expect(
-      mainStore.treeStore.getNodesAsync([{ key: storedLeaf1.index, level: 0 }])
+      mainTreeStore.getNodesAsync([{ key: storedLeaf1.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([leaf1.value, leaf1.path, leaf1.nextPath]).toBigInt(),
     ]);
@@ -381,7 +387,10 @@ describe("cached linked merkle store", () => {
     // Now the mainstore has the new 15n root.
     await cache1.mergeIntoParent();
 
-    const cachedStore = await CachedLinkedLeafStore.new(mainStore);
+    const cachedStore = await CachedLinkedLeafStore.new(
+      mainStore,
+      mainTreeStore
+    );
     await cachedStore.preloadKey(15n);
 
     expect(
@@ -395,7 +404,8 @@ describe("cached linked merkle store", () => {
     expect.assertions(16);
 
     const mStore = new InMemoryAsyncLinkedLeafStore();
-    const mCache = await CachedLinkedLeafStore.new(mStore);
+    const mTreeStore = new InMemoryAsyncMerkleTreeStore();
+    const mCache = await CachedLinkedLeafStore.new(mStore, mTreeStore);
     const mCache2 = new SyncCachedLinkedLeafStore(mCache);
     const treeCache1 = new LinkedMerkleTree(mCache.treeStore, mCache);
     const treeCache2 = new LinkedMerkleTree(mCache2.treeStore, mCache2);
