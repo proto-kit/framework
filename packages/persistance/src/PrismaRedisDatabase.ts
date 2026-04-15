@@ -27,7 +27,6 @@ import {
   RedisConnectionModule,
   RedisTransaction,
 } from "./RedisConnection";
-import { PrismaLinkedLeafStore } from "./services/prisma/PrismaLinkedLeafStore";
 
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;
@@ -74,28 +73,6 @@ export class PrismaRedisDatabase
     return {
       ...PrismaDatabaseConnection.dependencies(),
       ...RedisConnectionModule.dependencies(),
-
-      asyncLinkedLeafStore: {
-        useGenerated: (module) => {
-          return new PrismaLinkedLeafStore(
-            module.prisma,
-            module.redis,
-            module.tracer,
-            "batch"
-          );
-        },
-      },
-
-      unprovenLinkedLeafStore: {
-        useGenerated: (module) => {
-          return new PrismaLinkedLeafStore(
-            module.prisma,
-            module.redis,
-            module.tracer,
-            "block"
-          );
-        },
-      },
     };
   }
 

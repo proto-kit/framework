@@ -1,9 +1,12 @@
 import {
+  Block,
   BlockQueue,
   BlockStorage,
+  task,
   Task,
   TaskSerializer,
   TaskWorkerModule,
+  TransactionStorage,
 } from "@proto-kit/sequencer";
 import { log } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
@@ -21,6 +24,7 @@ export type IndexBlockResult =
     };
 
 @injectable()
+@task()
 export class IndexBlockTask
   extends TaskWorkerModule
   implements Task<IndexBlockTaskParameters[], IndexBlockResult>
@@ -32,13 +36,41 @@ export class IndexBlockTask
     @inject("BlockQueue")
     public blockStorage: BlockQueue,
     @inject("BlockStorage")
-    private readonly blockRepository: BlockStorage
+    private readonly blockRepository: BlockStorage,
+    @inject("TransactionStorage")
+    public transactionStorage: TransactionStorage
   ) {
     super();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   public async prepare(): Promise<void> {}
+
+  private async syncTransactions(block: Block) {
+    const results = await Promise.all(
+      block.transactions.map(async ({ tx }) => {
+        return [
+          tx,
+          await this.transactionStorage.findTransaction(tx.hash().toString()),
+        ] as const;
+      })
+    );
+
+    const missingTxs = results
+      .filter(([, result]) => result === undefined)
+      .map(([tx]) => tx);
+
+    const pushResults = await Promise.all(
+      missingTxs.map(
+        async (tx) => await this.transactionStorage.pushUserTransaction(tx, 0)
+      )
+    );
+    if (pushResults.some((x) => !x)) {
+      log.error(
+        "Some transactions haven't been pushed, this will lead to constraint errors!"
+      );
+    }
+  }
 
   public async compute(
     input: IndexBlockTaskParameters[]
@@ -58,6 +90,8 @@ export class IndexBlockTask
 
       for (const blockWithResult of input) {
         const height = Number(blockWithResult.block.height.toBigInt());
+        // eslint-disable-next-line no-await-in-loop
+        await this.syncTransactions(blockWithResult.block);
         // eslint-disable-next-line no-await-in-loop
         await this.blockStorage.pushBlock(blockWithResult.block);
         // eslint-disable-next-line no-await-in-loop

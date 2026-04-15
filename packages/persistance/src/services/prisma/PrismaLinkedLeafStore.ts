@@ -1,11 +1,9 @@
 import { noop, StoredLeaf } from "@proto-kit/common";
-import { AsyncLinkedLeafStore, Tracer } from "@proto-kit/sequencer";
+import { AsyncLinkedLeafStore, trace, Tracer } from "@proto-kit/sequencer";
 import { injectable } from "tsyringe";
 import { Prisma } from "@prisma/client";
 
-import { PrismaConnection } from "../../PrismaDatabaseConnection";
-import { RedisMerkleTreeStore } from "../redis/RedisMerkleTreeStore";
-import { RedisConnection } from "../../RedisConnection";
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 import { Decimal } from "./PrismaStateService";
 
@@ -13,24 +11,11 @@ import { Decimal } from "./PrismaStateService";
 export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
   private cache: StoredLeaf[] = [];
 
-  private readonly redisMerkleStore: RedisMerkleTreeStore;
-
   public constructor(
     private readonly connection: PrismaConnection,
-    redisConnection: RedisConnection,
-    tracer: Tracer,
+    public readonly tracer: Tracer,
     private readonly mask: string = "base"
-  ) {
-    this.redisMerkleStore = new RedisMerkleTreeStore(
-      redisConnection,
-      tracer,
-      mask
-    );
-  }
-
-  public get treeStore() {
-    return this.redisMerkleStore;
-  }
+  ) {}
 
   private assertCacheEmpty() {
     if (this.cache.length > 0) {
@@ -42,6 +27,7 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
     noop();
   }
 
+  @trace("LinkedLeafStore.commit")
   public async commit(): Promise<void> {
     if (this.cache.length > 0) {
       const data = this.cache.map((entry) => ({
@@ -126,6 +112,7 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
       : undefined;
   }
 
+  @trace("getPreviousLeaves", ([paths]) => ({ numPaths: paths.length }))
   public async getPreviousLeavesAsync(paths: bigint[]) {
     this.assertCacheEmpty();
 

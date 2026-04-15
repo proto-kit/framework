@@ -6,6 +6,7 @@ import {
 } from "@proto-kit/common";
 import {
   AsyncLinkedLeafStore,
+  AsyncMerkleTreeStore,
   CachedLinkedLeafStore,
 } from "@proto-kit/sequencer";
 
@@ -42,7 +43,9 @@ export class LinkedMerkleWitnessDTO {
 export class LinkedMerkleWitnessResolver extends GraphqlModule<object> {
   public constructor(
     @inject("AsyncLinkedLeafStore")
-    private readonly treeStore: AsyncLinkedLeafStore
+    private readonly leafStore: AsyncLinkedLeafStore,
+    @inject("AsyncTreeStore")
+    private readonly treeStore: AsyncMerkleTreeStore
   ) {
     super();
   }
@@ -52,7 +55,10 @@ export class LinkedMerkleWitnessResolver extends GraphqlModule<object> {
       "Allows retrieval of merkle witnesses corresponding to a specific path in the appchain's state tree. These proves are generally retrieved from the current 'proven' state",
   })
   public async witness(@Arg("path") path: string) {
-    const syncStore = await CachedLinkedLeafStore.new(this.treeStore);
+    const syncStore = await CachedLinkedLeafStore.new(
+      this.leafStore,
+      this.treeStore
+    );
 
     const tree = new LinkedMerkleTree(syncStore.treeStore, syncStore);
     await syncStore.preloadKey(BigInt(path));

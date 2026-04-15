@@ -81,17 +81,19 @@ export class TransactionProvingTaskParameterSerializer implements TaskSerializer
     };
   }
 
-  public toJSON(inputs: TransactionProvingTaskParameters): string {
+  public async toJSON(
+    inputs: TransactionProvingTaskParameters
+  ): Promise<string> {
     if (inputs === "dummy") {
       return "dummy";
     }
 
-    const taskParamsJson: TransactionProvingTaskParametersJSON = inputs.map(
-      (input) => {
+    const taskParamsJson: TransactionProvingTaskParametersJSON =
+      await mapSequential(inputs, async (input) => {
         const { parameters, proof } = input;
         const { executionData } = parameters;
 
-        const proofJSON = this.runtimeProofSerializer.toJSONProof(proof);
+        const proofJSON = await this.runtimeProofSerializer.toJSONProof(proof);
 
         const parametersJSON: TransactionProverTaskParametersJSON = {
           publicInput: TransactionProverPublicInput.toJSON(
@@ -112,8 +114,7 @@ export class TransactionProvingTaskParameterSerializer implements TaskSerializer
         };
 
         return { parameters: parametersJSON, proof: proofJSON };
-      }
-    );
+      });
 
     return JSON.stringify(taskParamsJson);
   }

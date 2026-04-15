@@ -1,3 +1,11 @@
-import { ConfigurableModule, NoConfig } from "@proto-kit/common";
+import { ConfigurableModule, implement, NoConfig } from "@proto-kit/common";
 
-export abstract class TaskWorkerModule extends ConfigurableModule<NoConfig> {}
+import { Task } from "../flow/Task";
+
+export abstract class TaskWorkerModule<
+  Config = NoConfig,
+> extends ConfigurableModule<Config> {}
+
+export function task<Input, Output>() {
+  return implement<Task<Input, Output>>("Task");
+}

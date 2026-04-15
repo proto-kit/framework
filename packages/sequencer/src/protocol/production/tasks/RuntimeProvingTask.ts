@@ -10,16 +10,20 @@ import {
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
-import { CompileRegistry } from "@proto-kit/common";
+import { CompileRegistry, dependencyFactory } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
+import { RuntimeCompileTask } from "./compile/RuntimeCompileTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -31,6 +35,8 @@ export interface RuntimeProofParameters {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
+@dependencyFactory()
 export class RuntimeProvingTask
   extends TaskWorkerModule
   implements Task<RuntimeProofParameters, RuntimeProof>
@@ -48,12 +54,22 @@ export class RuntimeProvingTask
     super();
   }
 
+  public static dependencies() {
+    return {
+      RuntimeCompileTask: {
+        useClass: RuntimeCompileTask,
+      },
+    };
+  }
+
   public inputSerializer(): TaskSerializer<RuntimeProofParameters> {
     return new RuntimeProofParametersSerializer();
   }
 
   public resultSerializer(): TaskSerializer<RuntimeProof> {
-    return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
+    return new ProofTaskSerializer(() =>
+      this.runtime.zkProgrammable.proofType()
+    );
   }
 
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {

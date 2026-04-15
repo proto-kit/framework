@@ -34,6 +34,7 @@ import {
   AsyncLinkedLeafStore,
   AppChain,
   DatabaseDependencyFactory,
+  AsyncMerkleTreeStore,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -114,6 +115,7 @@ export function testBlockProduction<
 
   let test: BlockTestService;
   let linkedLeafStore: AsyncLinkedLeafStore;
+  let treeStore: AsyncMerkleTreeStore;
 
   beforeEach(async () => {
     const runtimeClass = Runtime.from({
@@ -183,7 +185,11 @@ export function testBlockProduction<
       app.sequencer.dependencyContainer.resolve<AsyncLinkedLeafStore>(
         "UnprovenLinkedLeafStore"
       );
-  });
+    treeStore =
+      app.sequencer.dependencyContainer.resolve<AsyncMerkleTreeStore>(
+        "UnprovenTreeStore"
+      );
+  }, 30000);
 
   afterEach(async () => {
     await appChain.close();
@@ -296,7 +302,7 @@ export function testBlockProduction<
     expect(UInt64.fromFields(state2!)).toStrictEqual(UInt64.from(200));
 
     await expect(
-      LinkedMerkleTreeIntegrity.checkIntegrity(linkedLeafStore)
+      LinkedMerkleTreeIntegrity.checkIntegrity(linkedLeafStore, treeStore)
     ).resolves.toBe(true);
   }, 60_000);
 
@@ -331,7 +337,7 @@ export function testBlockProduction<
     expect(newState).toBeUndefined();
 
     await expect(
-      LinkedMerkleTreeIntegrity.checkIntegrity(linkedLeafStore)
+      LinkedMerkleTreeIntegrity.checkIntegrity(linkedLeafStore, treeStore)
     ).resolves.toBe(true);
   }, 30_000);
 
@@ -414,7 +420,7 @@ export function testBlockProduction<
     expect(block2!.transactions[0].statusMessage).toBeUndefined();
 
     await expect(
-      LinkedMerkleTreeIntegrity.checkIntegrity(linkedLeafStore)
+      LinkedMerkleTreeIntegrity.checkIntegrity(linkedLeafStore, treeStore)
     ).resolves.toBe(true);
   }, 60_000);
 

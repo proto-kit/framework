@@ -72,6 +72,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
 > {
   public constructor(
     private readonly prover: TransactionProver,
+    public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput>,
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
     private readonly stateServiceProvider: StateServiceProvider,
     private readonly verificationKeyService: MinimalVKTreeService
@@ -366,15 +367,20 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
    * Recursive linking of proofs is done via the previously
    * injected StateTransitionProver and the required AppChainProof class
    */
-  public zkProgramFactory(): PlainZkProgram<
-    TransactionProverPublicInput,
-    TransactionProverPublicOutput
-  >[] {
+  public async zkProgramFactory(): Promise<
+    PlainZkProgram<
+      TransactionProverPublicInput,
+      TransactionProverPublicOutput
+    >[]
+  > {
     const { prover } = this;
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveTransactions = prover.proveTransactions.bind(prover);
     const merge = prover.merge.bind(prover);
     const dummy = prover.dummy.bind(prover);
+
+    const runtimeProofType =
+      await this.runtime.zkProgrammable.dynamicProofType();
 
     const program = ZkProgram({
       name: "TransactionProver",
@@ -383,7 +389,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
 
       methods: {
         proveTransaction: {
-          privateInputs: [DynamicRuntimeProof, TransactionProverExecutionData],
+          privateInputs: [runtimeProofType, TransactionProverExecutionData],
 
           async method(
             publicInput: TransactionProverPublicInput,
@@ -469,9 +475,12 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     return [
       {
         name: program.name,
+        publicInputType: program.publicInputType,
+        publicOutputType: program.publicOutputType,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
+        maxProofsVerified: program.maxProofsVerified.bind(program),
         Proof: SelfProofClass,
         methods,
       },
@@ -504,6 +513,7 @@ export class TransactionProver
     super();
     this.zkProgrammable = new TransactionProverZkProgrammable(
       this,
+      runtime,
       transactionHooks,
       stateServiceProvider,
       verificationKeyService

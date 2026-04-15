@@ -8,10 +8,14 @@ import {
 } from "@proto-kit/protocol";
 import {
   CompileRegistry,
+  dependencyFactory,
   ProvableMethodExecutionContext,
 } from "@proto-kit/common";
 
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import {
   PairProofTaskSerializer,
@@ -19,8 +23,12 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 
+import { BlockProverCompileTask } from "./compile/ProtocolCompileTask";
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
+@dependencyFactory()
 export class BlockReductionTask
   extends TaskWorkerModule
   implements Task<PairTuple<BlockProof>, BlockProof>
@@ -41,15 +49,23 @@ export class BlockReductionTask
     this.blockProver = this.protocol.blockProver;
   }
 
+  public static dependencies() {
+    return {
+      BlockProverCompileTask: {
+        useClass: BlockProverCompileTask,
+      },
+    };
+  }
+
   public inputSerializer(): TaskSerializer<PairTuple<BlockProof>> {
-    return new PairProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    return new PairProofTaskSerializer(() =>
+      this.blockProver.zkProgrammable.proofType()
     );
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.blockProver.zkProgrammable.proofType()
     );
   }
 

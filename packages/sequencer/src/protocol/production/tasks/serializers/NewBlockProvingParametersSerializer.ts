@@ -60,10 +60,10 @@ export class NewBlockProvingParametersSerializer implements TaskSerializer<NewBl
     >
   ) {}
 
-  public toJSON(input: NewBlockPayload) {
+  public async toJSON(input: NewBlockPayload) {
     return JSON.stringify({
-      input1: this.stProofSerializer.toJSON(input.input1),
-      input2: this.transactionProofSerializer.toJSON(input.input2),
+      input1: await this.stProofSerializer.toJSON(input.input1),
+      input2: await this.transactionProofSerializer.toJSON(input.input2),
 
       params: {
         publicInput: BlockProverPublicInput.toJSON(input.params.publicInput),

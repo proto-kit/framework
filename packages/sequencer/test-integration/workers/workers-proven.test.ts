@@ -28,7 +28,7 @@ import { ChildProcessWorker } from "./ChildProcessWorker";
 const timeout = 300000;
 
 // true
-const proofsEnabled = false;
+const proofsEnabled = true;
 
 const numWorkers = 1;
 
