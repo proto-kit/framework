@@ -43,6 +43,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenLinkedLeafStore")
     private readonly unprovenLinkedLeafStore: AsyncLinkedLeafStore,
+    @inject("UnprovenTreeStore")
+    private readonly unprovenTreeStore: AsyncMerkleTreeStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
     @inject("TransactionStorage")
@@ -113,6 +115,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       await this.resultService.generateMetadataForNextBlock(
         block,
         this.unprovenLinkedLeafStore,
+        this.unprovenTreeStore,
         this.blockTreeStore,
         this.unprovenStateService
       );
@@ -135,6 +138,9 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   @ensureNotBusy()
   public async tryProduceBlock(): Promise<Block | undefined> {
+    // Check if previous result has been computed, and if not, compute it
+    await this.blockResultCompleteCheck();
+
     const block = await this.produceBlock();
 
     if (block === undefined) {
@@ -233,19 +239,23 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return blockResult?.block;
   }
 
-  public async blockResultCompleteCheck() {
+  public async blockResultCompleteCheck(): Promise<
+    "genesis" | "existent" | "generated"
+  > {
     // Check if metadata height is behind block production.
     // This can happen when the sequencer crashes after a block has been produced
     // but before the metadata generation has finished
     const latestBlock = await this.blockQueue.getLatestBlockAndResult();
-    // eslint-disable-next-line sonarjs/no-collapsible-if
     if (latestBlock !== undefined) {
       if (latestBlock.result === undefined) {
         await this.generateMetadata(latestBlock.block);
+        return "generated";
       }
       // Here, the metadata has been computed already
+      return "existent";
     }
     // If we reach here, its a genesis startup, no blocks exist yet
+    return "genesis";
   }
 
   public async start() {

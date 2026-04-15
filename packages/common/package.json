@@ -26,7 +26,7 @@
     "typescript-memoize": "^1.1.1"
   },
   "peerDependencies": {
-    "o1js": "^2.10.0",
+    "o1js": "2.10.0-dev.6d3a3",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {

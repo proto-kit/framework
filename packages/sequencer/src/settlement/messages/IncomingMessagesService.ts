@@ -3,7 +3,7 @@ import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 
 import { SettlementStorage } from "../../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../../storage/repositories/MessageStorage";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
+import { BlockQueue } from "../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import type { BridgingModule } from "../BridgingModule";
 
@@ -18,8 +18,8 @@ export class IncomingMessagesService {
     private readonly messageStorage: MessageStorage,
     @inject("IncomingMessageAdapter")
     private readonly messagesAdapter: IncomingMessageAdapter,
-    @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage,
+    @inject("BlockQueue")
+    private readonly blockStorage: BlockQueue,
     @inject("BridgingModule")
     private readonly bridgingModule: BridgingModule
   ) {}
@@ -102,7 +102,7 @@ export class IncomingMessagesService {
 
   public async getPendingMessages() {
     const latestSettlement = await this.settlementStorage.getLatestSettlement();
-    const latestBlock = await this.blockStorage.getLatestBlock();
+    const latestBlock = await this.blockStorage.getLatestBlockAndResult();
 
     const messagesHashCursor =
       latestBlock?.block?.toMessagesHash?.toString() ??

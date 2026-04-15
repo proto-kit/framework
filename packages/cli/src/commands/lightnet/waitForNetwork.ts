@@ -10,8 +10,7 @@ interface WaitForNetworkArgs {
 
 export const waitForNetworkCommand: CommandModule<{}, WaitForNetworkArgs> = {
   command: "wait",
-  describe:
-    "Wait for network to be ready\n\nRequires: MINA_NODE_GRAPHQL_HOST, MINA_NODE_GRAPHQL_PORT",
+  describe: "Wait for network to be ready\n\nRequires: MINA_NODE_GRAPHQL",
   builder: (yarg) => addEnvironmentOptions(yarg),
   handler: async (args) => {
     try {

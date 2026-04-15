@@ -64,7 +64,7 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
 
   public async initializeVKTree(artifacts: Record<string, CompileArtifact>) {
     const mappings = await mapSequential(
-      this.runtime.zkProgrammable.zkProgram,
+      await this.runtime.zkProgrammable.zkProgram(),
       async (program) => {
         const artifact = artifacts[program.name];
 

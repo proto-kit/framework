@@ -13,6 +13,7 @@ import groupBy from "lodash/groupBy";
 
 import { AsyncLinkedLeafStore } from "../async/AsyncLinkedLeafStore";
 import { CachedMerkleTreeStore } from "../merkle/CachedMerkleTreeStore";
+import { AsyncMerkleTreeStore } from "../async/AsyncMerkleTreeStore";
 
 export class CachedLinkedLeafStore implements LinkedLeafStore {
   private writeCache: {
@@ -23,8 +24,11 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
 
   private readonly treeCache: CachedMerkleTreeStore;
 
-  private constructor(private readonly parent: AsyncLinkedLeafStore) {
-    this.treeCache = new CachedMerkleTreeStore(parent.treeStore);
+  private constructor(
+    private readonly parent: AsyncLinkedLeafStore,
+    private readonly parentTreeStore: AsyncMerkleTreeStore
+  ) {
+    this.treeCache = new CachedMerkleTreeStore(parentTreeStore);
   }
 
   public get treeStore() {
@@ -32,9 +36,10 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
   }
 
   public static async new(
-    parent: AsyncLinkedLeafStore
+    parent: AsyncLinkedLeafStore,
+    parentTreeStore: AsyncMerkleTreeStore
   ): Promise<CachedLinkedLeafStore> {
-    const cachedInstance = new CachedLinkedLeafStore(parent);
+    const cachedInstance = new CachedLinkedLeafStore(parent, parentTreeStore);
     await cachedInstance.preloadMaximumIndex();
     await cachedInstance.preloadZeroNode();
     return cachedInstance;

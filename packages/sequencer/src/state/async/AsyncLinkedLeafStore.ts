@@ -1,10 +1,6 @@
 import { StoredLeaf } from "@proto-kit/common";
 
-import { AsyncMerkleTreeStore } from "./AsyncMerkleTreeStore";
-
 export interface AsyncLinkedLeafStore {
-  treeStore: AsyncMerkleTreeStore;
-
   openTransaction: () => Promise<void>;
 
   commit: () => Promise<void>;

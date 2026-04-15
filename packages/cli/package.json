@@ -25,6 +25,7 @@
     "dotenv": "^17.2.3",
     "inquirer": "^9.3.0",
     "kleur": "^4.1.5",
+    "loglevel": "^1.8.1",
     "mina-fungible-token": "^1.1.0",
     "reflect-metadata": "^0.1.13",
     "spectaql": "3.0.5",
@@ -42,7 +43,7 @@
     "@proto-kit/stack": "*",
     "@proto-kit/indexer": "*",
     "@proto-kit/persistance": "*",
-    "o1js": "^2.10.0",
+    "o1js": "2.10.0-dev.6d3a3",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {

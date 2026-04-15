@@ -71,7 +71,8 @@ export class MinaTransactionSender {
       log.info(`Sent L1 transaction ${txId.hash}`);
       statusEmitter.emit("sent", { hash: txId.hash });
 
-      txId.wait().then(
+      // 360 * 20s = 2h
+      txId.wait({ maxAttempts: 360, interval: 20_000 }).then(
         (included) => {
           log.info(`L1 transaction ${included.hash} has been included`);
           statusEmitter.emit("included", { hash: included.hash });

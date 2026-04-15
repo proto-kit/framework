@@ -23,4 +23,12 @@ export class ChildVerificationKeyService {
     }
     return artifact.verificationKey;
   }
+
+  public getAsConstant(name: string) {
+    const vk = this.getVerificationKey(name);
+    if (!vk.hash.isConstant()) {
+      throw new Error("Sanity check - vk hash has to be constant");
+    }
+    return vk;
+  }
 }

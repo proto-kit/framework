@@ -1,4 +1,4 @@
-import { noop } from "@proto-kit/common";
+import { NoConfig, noop } from "@proto-kit/common";
 
 import { TaskWorkerModule } from "../worker/TaskWorkerModule";
 
@@ -8,8 +8,8 @@ import { Task, TaskSerializer } from "./Task";
  * Contract:
  * Doesn't implement prepare()
  */
-export abstract class UnpreparingTask<Input, Output>
-  extends TaskWorkerModule
+export abstract class UnpreparingTask<Input, Output, Config = NoConfig>
+  extends TaskWorkerModule<Config>
   implements Task<Input, Output>
 {
   abstract name: string;

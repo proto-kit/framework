@@ -9,7 +9,7 @@ export default async function (options: LoadEnvOptions) {
   const { sleep } = await import("@proto-kit/common");
   const { fetchLastBlock, Provable } = await import("o1js");
   loadEnvironmentVariables(options);
-  const graphqlEndpoint = `${getRequiredEnv("MINA_NODE_GRAPHQL_HOST")}:${getRequiredEnv("MINA_NODE_GRAPHQL_PORT")}/graphql`;
+  const graphqlEndpoint = getRequiredEnv("MINA_NODE_GRAPHQL");
   let lastBlock;
   let attempt = 0;
   console.log("Waiting for network to be ready...");

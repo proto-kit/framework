@@ -10,16 +10,21 @@ import { loadUserModules } from "../../utils/loadUserModules";
 
 export default async function (options: LoadEnvOptions) {
   try {
-    const { Provable, PublicKey } = await import("o1js");
+    loadEnvironmentVariables(options);
+    const { Provable, PublicKey, PrivateKey } = await import("o1js");
     const { Runtime } = await import("@proto-kit/module");
     const { Protocol } = await import("@proto-kit/protocol");
-    const { AppChain, Sequencer, SettlementModule, InMemoryDatabase } =
-      await import("@proto-kit/sequencer");
+    const {
+      AppChain,
+      Sequencer,
+      SettlementModule,
+      InMemoryDatabase,
+      VanillaTaskWorkerModules,
+    } = await import("@proto-kit/sequencer");
 
     loadEnvironmentVariables(options);
     const { scriptModules, scriptModulesConfig } =
       await import("../../utils/modules");
-
     const { runtime, protocol } = await loadUserModules();
     const appChain = AppChain.from({
       Runtime: Runtime.from(runtime.modules),
@@ -48,6 +53,12 @@ export default async function (options: LoadEnvOptions) {
         BridgingModule: {
           addresses: undefined,
         },
+        SequencerStartupModule: {},
+        TaskQueue: {
+          simulatedDuration: 0,
+        },
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        Mempool: {},
       },
     });
 

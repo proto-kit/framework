@@ -13,16 +13,21 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
+  dependencyFactory,
 } from "@proto-kit/common";
 
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskSerializer, Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { TransactionProvingTaskParameterSerializer } from "./serializers/TransactionProvingTaskParameterSerializer";
 import { TransactionProvingTaskParameters } from "./serializers/types/TransactionProvingTypes";
+import { TransactionProverCompileTask } from "./compile/ProtocolCompileTask";
 
 export async function executeWithPrefilledStateService<Return>(
   stateServiceProvider: StateServiceProvider,
@@ -49,14 +54,13 @@ export async function executeWithPrefilledStateService<Return>(
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
+@dependencyFactory()
 export class TransactionProvingTask
   extends TaskWorkerModule
   implements Task<TransactionProvingTaskParameters, TransactionProof>
 {
   private readonly transactionProver: TransactionProvable;
-
-  private readonly runtimeProofType =
-    this.runtime.zkProgrammable.zkProgram[0].Proof;
 
   public name = "transaction";
 
@@ -73,9 +77,21 @@ export class TransactionProvingTask
     this.transactionProver = protocol.transactionProver;
   }
 
+  public static dependencies() {
+    return {
+      TransactionProverCompileTask: {
+        useClass: TransactionProverCompileTask,
+      },
+    };
+  }
+
+  private async runtimeProofType() {
+    return await this.runtime.zkProgrammable.proofType();
+  }
+
   public inputSerializer(): TaskSerializer<TransactionProvingTaskParameters> {
     const runtimeProofSerializer = new ProofTaskSerializer(
-      this.runtimeProofType
+      this.runtimeProofType.bind(this)
     );
     return new TransactionProvingTaskParameterSerializer(
       runtimeProofSerializer
@@ -83,8 +99,8 @@ export class TransactionProvingTask
   }
 
   public resultSerializer(): TaskSerializer<TransactionProof> {
-    return new ProofTaskSerializer(
-      this.transactionProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.transactionProver.zkProgrammable.proofType()
     );
   }
 

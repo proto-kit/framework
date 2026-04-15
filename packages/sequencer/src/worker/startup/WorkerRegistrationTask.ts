@@ -15,18 +15,19 @@ import {
 } from "@proto-kit/protocol";
 import { VerificationKey } from "o1js";
 
-import { Task } from "../../flow/Task";
-import { AbstractStartupTask } from "../../flow/AbstractStartupTask";
+import { Task } from "../flow/Task";
+import { AbstractStartupTask } from "../flow/AbstractStartupTask";
 import {
   VerificationKeyJSON,
   VerificationKeySerializer,
-} from "../../../protocol/production/tasks/serializers/VerificationKeySerializer";
+} from "../../protocol/production/tasks/serializers/VerificationKeySerializer";
 import {
   ArtifactRecordSerializer,
   SerializedArtifactRecord,
-} from "../../../protocol/production/tasks/serializers/ArtifactionRecordSerializer";
-import { SignedSettlementPermissions } from "../../../settlement/permissions/SignedSettlementPermissions";
-import { ProvenSettlementPermissions } from "../../../settlement/permissions/ProvenSettlementPermissions";
+} from "../../protocol/production/tasks/serializers/ArtifactionRecordSerializer";
+import { SignedSettlementPermissions } from "../../settlement/permissions/SignedSettlementPermissions";
+import { ProvenSettlementPermissions } from "../../settlement/permissions/ProvenSettlementPermissions";
+import { task } from "../worker/TaskWorkerModule";
 
 import { CloseWorkerError } from "./CloseWorkerError";
 
@@ -39,6 +40,7 @@ export type WorkerStartupPayload = {
 };
 
 @injectable()
+@task()
 export class WorkerRegistrationTask
   extends AbstractStartupTask<WorkerStartupPayload, boolean>
   implements Task<WorkerStartupPayload, boolean>

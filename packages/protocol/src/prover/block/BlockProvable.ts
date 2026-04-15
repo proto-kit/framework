@@ -1,7 +1,18 @@
-import { Bool, Field, Poseidon, Proof, Provable, Struct } from "o1js";
+import {
+  Bool,
+  DynamicProof,
+  Field,
+  Poseidon,
+  Proof,
+  Provable,
+  Struct,
+} from "o1js";
 import { CompilableModule, WithZkProgrammable } from "@proto-kit/common";
 
-import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
+import {
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput,
+} from "../statetransition/StateTransitionProvable";
 import { NetworkState } from "../../model/network/NetworkState";
 import { TransactionHashList } from "../accumulators/TransactionHashList";
 import { MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
@@ -10,7 +21,10 @@ import {
   WitnessedRootHashList,
   WitnessedRootWitness,
 } from "../accumulators/WitnessedRootHashList";
-import { TransactionProof } from "../transaction/TransactionProvable";
+import {
+  TransactionProverPublicInput,
+  TransactionProverPublicOutput,
+} from "../transaction/TransactionProvable";
 import { BundleHashList, FieldTransition } from "../accumulators/BlockHashList";
 import { NonMethods } from "../../utils/utils";
 import { Constants } from "../../Constants";
@@ -345,6 +359,16 @@ export class BlockProverState {
   }
 }
 
+export type DynamicSTProof = DynamicProof<
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput
+>;
+
+export type DynamicTransactionProof = DynamicProof<
+  TransactionProverPublicInput,
+  TransactionProverPublicOutput
+>;
+
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProvable
@@ -368,8 +392,8 @@ export interface BlockProvable
     batch: BlockArgumentsBatch,
     deferSTProof: Bool,
     deferTransactionProof: Bool,
-    stateTransitionProof: StateTransitionProof,
-    transactionProof: TransactionProof
+    stateTransitionProof: DynamicSTProof,
+    transactionProof: DynamicTransactionProof
   ) => Promise<BlockProverPublicOutput>;
 
   merge: (
