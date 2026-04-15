@@ -11,7 +11,7 @@ import { loadUserModules } from "../../utils/loadUserModules";
 export default async function (options: LoadEnvOptions) {
   try {
     loadEnvironmentVariables(options);
-    const { Provable, PublicKey, PrivateKey } = await import("o1js");
+    const { Provable, PublicKey } = await import("o1js");
     const { Runtime } = await import("@proto-kit/module");
     const { Protocol } = await import("@proto-kit/protocol");
     const {
