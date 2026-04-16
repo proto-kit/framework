@@ -1,8 +1,7 @@
 import { execSync } from "child_process";
 
-import degit from "degit";
-
-const STARTER_KIT_REPO = "proto-kit/starter-kit#develop";
+const STARTER_KIT_REPO = "https://github.com/proto-kit/starter-kit.git";
+const REPO_BRANCH = "develop";
 
 export interface InitArgs {
   name?: string;
@@ -14,21 +13,9 @@ export default async function (args: InitArgs): Promise<void> {
   console.log(`\nCloning starter-kit into ./${targetDir}...\n`);
 
   try {
-    const emitter = degit(STARTER_KIT_REPO);
-
-    emitter.on("info", (info) => {
-      console.log(info.message);
-    });
-
-    await emitter.clone(targetDir);
-
-    execSync("git init -b develop", { cwd: targetDir, stdio: "ignore" });
-    execSync("git add -A", { cwd: targetDir, stdio: "ignore" });
-    // eslint-disable-next-line @typescript-eslint/quotes
-    execSync('git commit -m "initial commit"', {
-      cwd: targetDir,
-      stdio: "ignore",
-    });
+    execSync(
+      `git clone --depth 1 --branch ${REPO_BRANCH} ${STARTER_KIT_REPO} ${targetDir}`
+    );
 
     console.log(`\nProject created at ./${targetDir}`);
     console.log("\nNext steps:");
