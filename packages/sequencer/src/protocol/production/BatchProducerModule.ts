@@ -157,12 +157,14 @@ export class BatchProducerModule extends SequencerModule {
       this.merkleStore
     );
 
+    log.info(`Tracing ${blocks.length} blocks...`);
     const trace = await this.batchTraceService.traceBatch(
       blocks.map((block) => block),
       merkleTreeStore,
       batchId
     );
 
+    log.info("Proving batch...");
     const proof = await this.batchFlow.executeBatch(trace, batchId);
 
     const fromNetworkState = blocks[0].block.networkState.before;

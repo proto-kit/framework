@@ -21,6 +21,7 @@ import {
   RuntimeTransaction,
   NetworkState,
 } from "@proto-kit/protocol";
+import chunk from "lodash/chunk";
 
 import {
   combineMethodName,
@@ -65,6 +66,14 @@ const errors = {
     new Error(`Unable to find method with id ${methodKey}`),
 };
 
+type Methods = Record<
+  string,
+  {
+    privateInputs: any;
+    method: AsyncWrappedMethod;
+  }
+>;
+
 export class RuntimeZkProgrammable<
   Modules extends RuntimeModulesRecord,
 > extends ZkProgrammable<undefined, MethodPublicOutput> {
@@ -76,25 +85,10 @@ export class RuntimeZkProgrammable<
     return this.runtime.areProofsEnabled;
   }
 
-  public async zkProgramFactory(): Promise<
-    PlainZkProgram<undefined, MethodPublicOutput>[]
-  > {
-    type Methods = Record<
-      string,
-      {
-        privateInputs: any;
-        method: AsyncWrappedMethod;
-      }
-    >;
-    // We need to use explicit type annotations here,
-    // therefore we can't use destructuring
+  private extractRuntimeMethods() {
+    const { runtime } = this;
 
-    // eslint-disable-next-line prefer-destructuring
-    const runtime: Runtime<Modules> = this.runtime;
-
-    const MAXIMUM_METHODS_PER_ZK_PROGRAM = 8;
-
-    const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
+    return runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
         runtime.isValidModuleName(runtime.definition, runtimeModuleName);
 
@@ -166,63 +160,27 @@ export class RuntimeZkProgrammable<
       },
       {}
     );
+  }
 
-    const sortedRuntimeMethods = Object.fromEntries(
-      Object.entries(runtimeMethods).sort()
+  public async zkProgramFactory(): Promise<
+    PlainZkProgram<undefined, MethodPublicOutput>[]
+  > {
+    const runtimeMethods = this.extractRuntimeMethods();
+
+    const buckets = this.runtime.bucketRuntimeMethods(
+      Object.keys(runtimeMethods)
     );
 
-    const splitRuntimeMethods = () => {
-      const buckets: Array<
-        Record<
-          string,
-          {
-            privateInputs: any;
-            method: AsyncWrappedMethod;
-          }
-        >
-      > = [];
-      Object.entries(sortedRuntimeMethods).forEach(
-        async ([methodName, method]) => {
-          let methodAdded = false;
-          for (const bucket of buckets) {
-            if (buckets.length === 0) {
-              const record: Record<
-                string,
-                {
-                  privateInputs: any;
-                  method: AsyncWrappedMethod;
-                }
-              > = {};
-              record[methodName] = method;
-              buckets.push(record);
-              methodAdded = true;
-              break;
-            } else if (
-              Object.keys(bucket).length <=
-              MAXIMUM_METHODS_PER_ZK_PROGRAM - 1
-            ) {
-              bucket[methodName] = method;
-              methodAdded = true;
-              break;
-            }
-          }
-          if (!methodAdded) {
-            const record: Record<
-              string,
-              {
-                privateInputs: any;
-                method: AsyncWrappedMethod;
-              }
-            > = {};
-            record[methodName] = method;
-            buckets.push(record);
-          }
-        }
-      );
-      return buckets;
-    };
+    const splitRuntimeMethods = buckets.map((bucket) =>
+      Object.fromEntries(
+        bucket.map((methodName) => {
+          const method = runtimeMethods[methodName];
+          return [methodName, method] as const;
+        })
+      )
+    );
 
-    return splitRuntimeMethods().map((bucket, index) => {
+    return splitRuntimeMethods.map((bucket, index) => {
       const name = `RuntimeProgram-${index}`;
       const wrappedBucket = Object.fromEntries(
         Object.entries(bucket).map(([methodName, methodDef]) => [
@@ -363,6 +321,14 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return (method as (...args: unknown[]) => Promise<unknown>).bind(module);
+  }
+
+  public bucketRuntimeMethods(methods: string[]) {
+    const MAXIMUM_METHODS_PER_ZK_PROGRAM = 8;
+
+    const sorted = methods.slice().sort();
+
+    return chunk(sorted, MAXIMUM_METHODS_PER_ZK_PROGRAM);
   }
 
   /**
