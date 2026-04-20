@@ -16,6 +16,7 @@ import {
   DependencyRecord,
   log,
   dependencyFactory,
+  tryNTimes,
 } from "@proto-kit/common";
 
 import {
@@ -161,7 +162,12 @@ export class SettlementModule
         : this.parentContainer.dependencyContainer.resolve(
             VanillaSettlementInteraction
           );
-    const settlement = await interaction.settle(batch, options);
+
+    const settlement = await tryNTimes(
+      async () => await interaction.settle(batch, options),
+      3,
+      1000
+    );
 
     await this.settlementStorage.pushSettlement(settlement);
 

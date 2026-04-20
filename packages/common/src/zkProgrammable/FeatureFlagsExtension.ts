@@ -1,7 +1,10 @@
 import { FeatureFlags } from "o1js";
 
 function combineFeatureFlag(a: boolean | undefined, b: boolean | undefined) {
-  if (a === true || b === true) {
+  // If both are true => true
+  // If one or both are undefined (maybe) => maybe
+  // If both are none => none
+  if (a === true && b === true) {
     return true;
   } else if (a === undefined || b === undefined) {
     return undefined;
