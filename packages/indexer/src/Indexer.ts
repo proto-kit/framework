@@ -8,6 +8,7 @@ import { ConsoleTracingFactory } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 
 import { IndexerModule } from "./IndexerModule";
+import { IndexerHeightInstrumentation } from "./IndexerHeightInstrumentation";
 
 export type IndexerModulesRecord = ModulesRecord<
   TypedClass<IndexerModule<unknown>>
@@ -26,9 +27,18 @@ export class Indexer<
     return this.container.resolve("TaskQueue");
   }
 
+  public static dependencies() {
+    return {
+      IndexerHeightInstrumentation: {
+        useClass: IndexerHeightInstrumentation,
+      },
+    };
+  }
+
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
     this.useDependencyFactory(ConsoleTracingFactory);
+    this.useDependencyFactory(Indexer);
   }
 
   public async start() {

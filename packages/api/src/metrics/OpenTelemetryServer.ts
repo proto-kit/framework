@@ -14,7 +14,12 @@ import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runti
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { inject } from "tsyringe";
-import { dependencyFactory, DependencyRecord, log } from "@proto-kit/common";
+import {
+  dependencyFactory,
+  DependencyRecord,
+  log,
+  ModuleContainerLike,
+} from "@proto-kit/common";
 
 import { OpenTelemetryTracer } from "./OpenTelemetryTracer";
 import { ModularizedInstrumentation } from "./ModularizedInstrumentation";
@@ -35,7 +40,8 @@ export type OpenTelemetryServerConfig = {
 @dependencyFactory()
 export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConfig> {
   public constructor(
-    @inject("Sequencer") private readonly sequencer: Sequencer<any>
+    @inject("ParentContainer")
+    private readonly parentContainer: ModuleContainerLike
   ) {
     super();
   }
@@ -54,7 +60,7 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
       config: { metrics, tracing },
     } = this;
 
-    const seqMetrics = this.sequencer.dependencyContainer.resolve(
+    const seqMetrics = this.parentContainer.dependencyContainer.resolve(
       ModularizedInstrumentation
     );
 

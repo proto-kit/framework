@@ -1,4 +1,4 @@
-import { injectable, injectAll } from "tsyringe";
+import { injectable, injectAll, Lifecycle, scoped } from "tsyringe";
 import { PollInstrumentation, PushInstrumentation } from "@proto-kit/sequencer";
 import { InstrumentationBase } from "@opentelemetry/instrumentation";
 import { mapSequential, splitArray } from "@proto-kit/common";
@@ -6,11 +6,8 @@ import { mapSequential, splitArray } from "@proto-kit/common";
 const INSTRUMENTATION_PREFIX = "protokit";
 
 @injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class ModularizedInstrumentation extends InstrumentationBase<{}> {
-  // private readonly pushInstrumentations: PushInstrumentation[];
-
-  // private readonly pollInstrumentations: PollInstrumentation[];
-
   public constructor(
     @injectAll("Instrumentation")
     private readonly instrumentations: (
