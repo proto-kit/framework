@@ -35,6 +35,7 @@
   "peerDependencies": {
     "@proto-kit/api": "*",
     "@proto-kit/common": "*",
+    "@proto-kit/indexer": "*",
     "@proto-kit/library": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
