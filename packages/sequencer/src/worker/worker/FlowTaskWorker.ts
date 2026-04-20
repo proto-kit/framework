@@ -57,20 +57,10 @@ export class FlowTaskWorker implements Closeable {
 
         return result;
       } catch (error: unknown) {
-        const payload =
-          error instanceof Error ? error.message : JSON.stringify(error);
-
         log.error("Error in worker (detailed trace): ");
         log.error(error);
 
-        return {
-          status: "error",
-          taskId: data.taskId,
-          flowId: data.flowId,
-          name: data.name,
-          payload,
-          sequencerId: data.sequencerId,
-        };
+        throw error;
       }
     });
   }

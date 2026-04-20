@@ -2,6 +2,7 @@ import {
   AreProofsEnabled,
   dependencyFactory,
   DependencyRecord,
+  log,
   ModuleContainerLike,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
@@ -122,13 +123,12 @@ export class MinaBaseLayer
     this.originalNetwork = Mina.activeInstance;
 
     const Network = await match(network)
-      .with(
-        { type: "local" },
-        async () =>
-          await Mina.LocalBlockchain({
-            proofsEnabled: this.areProofsEnabled.areProofsEnabled,
-          })
-      )
+      .with({ type: "local" }, async () => {
+        log.info("Creating local mina blockchain");
+        return await Mina.LocalBlockchain({
+          proofsEnabled: this.areProofsEnabled.areProofsEnabled,
+        });
+      })
       .with({ type: "lightnet" }, async (lightnet) => {
         const net = Mina.Network({
           mina: lightnet.graphql,
@@ -136,17 +136,24 @@ export class MinaBaseLayer
           lightnetAccountManager: lightnet.accountManager,
         });
         net.proofsEnabled = this.areProofsEnabled.areProofsEnabled;
+        log.info(
+          `Connecting to Mina network at ${lightnet.graphql} (archive ${lightnet.archive}, accountmanager: ${lightnet.accountManager})`
+        );
         return net;
       })
-      .with({ type: "remote" }, async (remote) =>
-        Mina.Network({
+      .with({ type: "remote" }, async (remote) => {
+        log.info(
+          `Connecting to Mina network at ${remote.graphql} (archive ${remote.archive})`
+        );
+        return Mina.Network({
           mina: remote.graphql,
           archive: remote.archive,
-        })
-      )
+        });
+      })
       .exhaustive();
 
     Mina.setActiveInstance(Network);
+
     this.network = Network;
   }
 }

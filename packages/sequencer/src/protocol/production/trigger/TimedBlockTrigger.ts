@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { dependencyFactory, log } from "@proto-kit/common";
 
 import { closeable, Closeable } from "../../../sequencer/builder/Closeable";
 import { BatchProducerModule } from "../BatchProducerModule";
@@ -13,6 +13,8 @@ import {
 } from "../../../settlement/BridgingModule";
 import { ensureNotBusy } from "../../../helpers/BusyGuard";
 import { SequencerStartupModule } from "../../../sequencer/SequencerStartupModule";
+import { BlockProductionInstrumentation } from "../../../metrics/BlockProductionInstrumentation";
+import { SequencerCoreModule } from "../../../sequencer/SequencerCoreModule";
 
 import { BlockTriggerBase } from "./BlockTrigger";
 
@@ -26,6 +28,7 @@ export interface TimedBlockTriggerConfig {
 
 @injectable()
 @closeable()
+@dependencyFactory()
 export class TimedBlockTrigger
   extends BlockTriggerBase<TimedBlockTriggerConfig>
   implements Closeable
@@ -48,7 +51,10 @@ export class TimedBlockTrigger
     // Only for start order, we need to make sure startup is finished before
     // starting the block production
     @inject("SequencerStartupModule")
-    private readonly startupModule: SequencerStartupModule
+    private readonly startupModule: SequencerStartupModule,
+    // TODO Fix the necessity for this - by having @startable() and starting based on that
+    @inject("SequencerCoreModule", { isOptional: true })
+    private readonly sequencerCoreModule: SequencerCoreModule | undefined
   ) {
     super(
       blockProducerModule,
@@ -57,6 +63,14 @@ export class TimedBlockTrigger
       bridgingModule,
       blockQueue
     );
+  }
+
+  public static dependencies() {
+    return {
+      BlockProductionInstrumentation: {
+        useClass: BlockProductionInstrumentation,
+      },
+    };
   }
 
   public async start(): Promise<void> {

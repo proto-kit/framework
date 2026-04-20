@@ -72,6 +72,16 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
     return (await this.getBlockByQuery({ height }))?.block;
   }
 
+  public async getBlockWithResultAt(
+    height: number
+  ): Promise<BlockWithResult | undefined> {
+    const data = await this.getBlockByQuery({ height });
+    if (data === undefined || data.result === undefined) {
+      return undefined;
+    }
+    return { block: data.block, result: data.result };
+  }
+
   public async getBlock(hash: string): Promise<Block | undefined> {
     return (await this.getBlockByQuery({ hash }))?.block;
   }

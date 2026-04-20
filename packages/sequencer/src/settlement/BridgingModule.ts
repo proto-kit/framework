@@ -56,6 +56,7 @@ import { AsyncLinkedLeafStore } from "../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../state/lmt/CachedLinkedLeafStore";
 import { SettleableBatch } from "../storage/model/Batch";
 import { SequencerModule } from "../sequencer/builder/SequencerModule";
+import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 
 import type { SettlementModule } from "./SettlementModule";
 import { SettlementUtils } from "./utils/SettlementUtils";
@@ -114,6 +115,8 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
     private readonly outgoingMessageCollector: OutgoingMessageCollector,
     @inject("AsyncLinkedLeafStore")
     private readonly linkedLeafStore: AsyncLinkedLeafStore,
+    @inject("AsyncTreeStore")
+    private readonly treeStore: AsyncMerkleTreeStore,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
@@ -590,7 +593,10 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
 
     const bridgeContract = this.createBridgeContract(bridgeAddress, tokenId);
 
-    const cachedStore = await CachedLinkedLeafStore.new(this.linkedLeafStore);
+    const cachedStore = await CachedLinkedLeafStore.new(
+      this.linkedLeafStore,
+      this.treeStore
+    );
     const tree = new LinkedMerkleTree(cachedStore.treeStore, cachedStore);
 
     // Create withdrawal batches and send them as L1 transactions

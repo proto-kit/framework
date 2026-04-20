@@ -14,7 +14,7 @@ describe.each(["mock-proofs", "signed"] as const)(
       },
     };
 
-    describe.only("Default token", () => {
+    describe("Default token", () => {
       settlementTestFn(type, network);
     });
 
