@@ -75,11 +75,20 @@ export class IndexBlockTask
   public async compute(
     input: IndexBlockTaskParameters[]
   ): Promise<IndexBlockResult> {
+    // We have two scenarios here:
+    // - In normal indexing, we only receive a single block.
+    // - If we receive multiple blocks, it means we’re indexing missing blocks
+    // that were generated using Array.from()
+    // Therefore, the incoming input array will always be in-order
     const firstBlockHeight = Number(input[0].block.height.toBigInt());
 
     try {
       const currentHeight = await this.blockRepository.getCurrentBlockHeight();
 
+      // We rely on the block storage to enforce some sort of internal consistency
+      // i.e. it throws an error when we try to insert a block whose parent isn't
+      // stored yet. Therefore, we can rely on the height indicating that all
+      // previous blocks are existent - so we only check for that here
       if (firstBlockHeight > currentHeight) {
         const missingHeights = Array.from(
           { length: firstBlockHeight - currentHeight + 1 },
