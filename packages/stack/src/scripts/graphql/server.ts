@@ -174,6 +174,10 @@ export async function startServer() {
         },
         metrics: {
           enabled: true,
+          prometheus: {
+            port: 9464,
+            host: "0.0.0.0",
+          },
         },
       },
 
