@@ -14,13 +14,8 @@ export default async function (options: LoadEnvOptions) {
     const { Provable, PublicKey } = await import("o1js");
     const { Runtime } = await import("@proto-kit/module");
     const { Protocol } = await import("@proto-kit/protocol");
-    const {
-      AppChain,
-      Sequencer,
-      SettlementModule,
-      InMemoryDatabase,
-      VanillaTaskWorkerModules,
-    } = await import("@proto-kit/sequencer");
+    const { AppChain, Sequencer, SettlementModule, VanillaTaskWorkerModules } =
+      await import("@proto-kit/sequencer");
 
     loadEnvironmentVariables(options);
     const { scriptModules, scriptModulesConfig } =

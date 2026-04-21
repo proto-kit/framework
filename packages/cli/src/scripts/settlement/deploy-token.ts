@@ -1,7 +1,6 @@
 /* eslint-disable no-inner-declarations */
 
 import { DispatchSmartContract } from "@proto-kit/protocol";
-import { PrismaRedisDatabase } from "@proto-kit/persistance";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
