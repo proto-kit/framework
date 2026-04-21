@@ -11,27 +11,20 @@ import { loadUserModules } from "../../utils/loadUserModules";
 export default async function (options: LoadEnvOptions) {
   try {
     loadEnvironmentVariables(options);
-    const { Provable, PublicKey, PrivateKey } = await import("o1js");
+    const { Provable, PublicKey } = await import("o1js");
     const { Runtime } = await import("@proto-kit/module");
     const { Protocol } = await import("@proto-kit/protocol");
     const {
       AppChain,
       Sequencer,
       SettlementModule,
-      InMemoryDatabase,
-      BatchProducerModule,
-      BridgingModule,
-      ConstantFeeStrategy,
-      InMemoryMinaSigner,
-      MinaBaseLayer,
-      PrivateMempool,
-      LocalTaskQueue,
-      WorkerModule,
       VanillaTaskWorkerModules,
-      SequencerStartupModule,
+      InMemoryDatabase,
     } = await import("@proto-kit/sequencer");
 
-    const { DefaultConfigs } = await import("@proto-kit/stack");
+    loadEnvironmentVariables(options);
+    const { scriptModules, scriptModulesConfig } =
+      await import("../../utils/modules");
     const { runtime, protocol } = await loadUserModules();
     const appChain = AppChain.from({
       Runtime: Runtime.from(runtime.modules),
@@ -41,16 +34,7 @@ export default async function (options: LoadEnvOptions) {
       }),
       Sequencer: Sequencer.from({
         Database: InMemoryDatabase,
-        BaseLayer: MinaBaseLayer,
-        FeeStrategy: ConstantFeeStrategy,
-        BatchProducerModule,
-        SettlementModule,
-        SettlementSigner: InMemoryMinaSigner,
-        BridgingModule,
-        Mempool: PrivateMempool,
-        TaskQueue: LocalTaskQueue,
-        WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
-        SequencerStartupModule,
+        ...scriptModules,
       }),
     });
 
@@ -61,35 +45,7 @@ export default async function (options: LoadEnvOptions) {
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
-        ...DefaultConfigs.inMemoryDatabase(),
-        BaseLayer: {
-          network: {
-            // eslint-disable-next-line max-len
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-assignment
-            type: process.env.MINA_NETWORK as any,
-            graphql: process.env.MINA_NODE_GRAPHQL!,
-            archive: process.env.MINA_ARCHIVE_GRAPHQL!,
-            accountManager: process.env.MINA_ACCOUNT_MANAGER_URL!,
-          },
-        },
-        SettlementSigner: {
-          feepayer: PrivateKey.fromBase58(
-            process.env.PROTOKIT_SEQUENCER_PRIVATE_KEY!
-          ),
-          contractKeys: [
-            PrivateKey.fromBase58(
-              process.env.PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY!
-            ),
-            PrivateKey.fromBase58(
-              process.env.PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY!
-            ),
-            PrivateKey.fromBase58(
-              process.env.PROTOKIT_MINA_BRIDGE_CONTRACT_PRIVATE_KEY!
-            ),
-          ],
-        },
-        FeeStrategy: {},
-        BatchProducerModule: {},
+        ...scriptModulesConfig,
         SettlementModule: {
           addresses: undefined,
         },
@@ -101,7 +57,7 @@ export default async function (options: LoadEnvOptions) {
           simulatedDuration: 0,
         },
         WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
-        Mempool: {},
+        Database: {},
       },
     });
 

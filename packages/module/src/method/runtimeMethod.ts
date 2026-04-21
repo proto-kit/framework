@@ -161,7 +161,7 @@ export function combineMethodName(
   runtimeModuleName: string,
   methodName: string
 ) {
-  return `${runtimeModuleName}.${methodName}`;
+  return `${runtimeModuleName}.${methodName}` as const;
 }
 
 export const runtimeMethodMetadataKey = "yab-method";

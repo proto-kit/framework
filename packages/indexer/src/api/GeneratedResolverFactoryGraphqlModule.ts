@@ -1,6 +1,5 @@
 import {
-  GraphqlModulesRecord,
-  GraphqlSequencerModule,
+  GraphqlServer,
   ResolverFactoryGraphqlModule,
   graphqlModule,
 } from "@proto-kit/api";
@@ -99,7 +98,7 @@ export function ValidateTakeArg() {
 export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphqlModule {
   public constructor(
     @inject("GraphqlServer")
-    public graphqlServer: GraphqlSequencerModule<GraphqlModulesRecord>
+    public graphqlServer: GraphqlServer
   ) {
     super();
   }

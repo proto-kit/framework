@@ -10,6 +10,7 @@ import { wizardCommand } from "./commands/wizard";
 import { settlementCommand } from "./commands/settlement/settlement";
 import { lightnetCommand } from "./commands/lightnet/lightnet";
 import { bridgeCommand } from "./commands/bridge/bridge";
+import { initCommand } from "./commands/init";
 import { circuitSummaryCommand } from "./commands/circuitSummary";
 
 process.removeAllListeners("warning");
@@ -26,6 +27,7 @@ await yargs(hideBin(process.argv))
   .command(settlementCommand)
   .command(lightnetCommand)
   .command(bridgeCommand)
+  .command(initCommand)
   .command(circuitSummaryCommand)
   .demandCommand(
     1,

@@ -16,7 +16,7 @@ export const tokenDeployCommand: CommandModule<{}, TokenDeployArgs> = {
   command:
     "token-deploy <tokenSymbol> <feepayerKey> <receiverPublicKey> [mintAmount]",
   describe:
-    "Deploy custom fungible token for settlement\n\nRequires: PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY, PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY, PROTOKIT_CUSTOM_TOKEN_PRIVATE_KEY, PROTOKIT_CUSTOM_TOKEN_ADMIN_PRIVATE_KEY, PROTOKIT_CUSTOM_TOKEN_BRIDGE_PRIVATE_KEY",
+    "Deploy custom fungible token for settlement\n\nRequires: REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, DATABASE_URL, PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY, PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY",
   builder: (yarg) =>
     addEnvironmentOptions(
       yarg

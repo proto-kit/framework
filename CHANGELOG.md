@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 - Added createdAt timestamp to block, batch and settlement models.[#502](https://github.com/proto-kit/framework/pull/502)
+- Added missing block detection and recovery in the indexer.[#488](https://github.com/proto-kit/framework/pull/488)
 - `@dependencyFactory` for static dependency factory type safety
 - Added Mempool sorting [#395](https://github.com/proto-kit/framework/pull/395)
 - Introduced dynamic block building and JIT transaction fetching [#394](https://github.com/proto-kit/framework/pull/394)

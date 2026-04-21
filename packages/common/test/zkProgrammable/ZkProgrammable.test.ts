@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { jest } from "@jest/globals";
 import { container } from "tsyringe";
-import { Field, Struct, Proof, ZkProgram } from "o1js";
+import { Field, Struct, Proof, ZkProgram, Provable, FeatureFlags } from "o1js";
 
 import {
   MOCK_PROOF,
@@ -116,6 +116,9 @@ class OtherTestProgrammable extends ZkProgrammable<undefined, void> {
       Awaited<ReturnType<typeof this.testProgrammable.proofType>>
     >
   ) {
+    const w = Provable.witness(Field, () => Field(0));
+    w.assertLessThan(Field(100));
+
     testProgrammableProof.verify();
   }
 
@@ -153,6 +156,16 @@ class OtherTestProgrammable extends ZkProgrammable<undefined, void> {
 }
 
 const testWithProofs = false;
+
+async function withProofsEnabled(
+  areProofsEnabled: AreProofsEnabled,
+  f: () => Promise<void>
+) {
+  const proofsBefore = areProofsEnabled.areProofsEnabled;
+  areProofsEnabled.setProofsEnabled(true);
+  await f();
+  areProofsEnabled.setProofsEnabled(proofsBefore);
+}
 
 describe("zkProgrammable", () => {
   let testProgrammable: TestProgrammable;
@@ -220,6 +233,29 @@ describe("zkProgrammable", () => {
         });
       });
 
+      it("should return correct proof type", async () => {
+        await withProofsEnabled(
+          testProgrammable.areProofsEnabled!,
+          async () => {
+            const type = await testProgrammable.proofType();
+            expect((type as any).maxProofsVerified).toBe(0);
+          }
+        );
+      });
+
+      it("should return correct dynamic proof type", async () => {
+        await withProofsEnabled(
+          testProgrammable.areProofsEnabled!,
+          async () => {
+            const type = await testProgrammable.dynamicProofType();
+            expect((type as any).maxProofsVerified).toStrictEqual(0);
+            expect((type as any).featureFlags).toStrictEqual(
+              FeatureFlags.allNone
+            );
+          }
+        );
+      });
+
       it("compile should return the correct verification key", () => {
         expect.assertions(1);
 
@@ -273,6 +309,31 @@ describe("zkProgrammable", () => {
               .then(takeFirst)
               .then((p) => p.compile());
           }, 500_000);
+
+          it("should return correct proof type", async () => {
+            await withProofsEnabled(
+              testProgrammable.areProofsEnabled!,
+              async () => {
+                const type = await otherTestProgrammable.proofType();
+                expect((type as any).maxProofsVerified).toBe(1);
+              }
+            );
+          });
+
+          it("should return correct dynamic proof type", async () => {
+            await withProofsEnabled(
+              testProgrammable.areProofsEnabled!,
+              async () => {
+                const type = await otherTestProgrammable.dynamicProofType();
+                expect((type as any).maxProofsVerified).toBe(1);
+                const flags = FeatureFlags.allNone;
+                flags.rangeCheck0 = true;
+                flags.rangeCheck1 = true;
+                flags.foreignFieldAdd = true;
+                expect((type as any).featureFlags).toStrictEqual(flags);
+              }
+            );
+          });
 
           it("should successfully pass proof of one zkProgram as input to another zkProgram", async () => {
             expect.assertions(3);

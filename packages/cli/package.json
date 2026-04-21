@@ -35,14 +35,15 @@
   "peerDependencies": {
     "@proto-kit/api": "*",
     "@proto-kit/common": "*",
+    "@proto-kit/indexer": "*",
     "@proto-kit/library": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "@proto-kit/stack": "*",
-    "@proto-kit/indexer": "*",
-    "o1js": "2.10.0-dev.6d3a3",
+    "@proto-kit/persistance": "*",
+    "o1js": "2.14.0-dev.e1080",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {

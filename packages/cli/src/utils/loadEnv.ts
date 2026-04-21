@@ -13,12 +13,18 @@ export type LoadEnvOptions = {
 
 export function loadEnvironmentVariables(options: LoadEnvOptions) {
   const cwd = process.cwd();
+
+  const scriptsEnvPath = path.join(
+    resolveChainPath(),
+    `./src/core/environments/${options.env}/scripts.env`
+  );
+  const defaultEnvPath = path.join(
+    resolveChainPath(),
+    `./src/core/environments/${options.env}/.env`
+  );
   const env =
     options.envPath ??
-    path.join(
-      resolveChainPath(),
-      `./src/core/environments/${options.env}/.env`
-    );
+    (fs.existsSync(scriptsEnvPath) ? scriptsEnvPath : defaultEnvPath);
   const envPath = path.isAbsolute(env) ? env : path.join(cwd, env);
   if (fs.existsSync(envPath)) {
     dotenv.config({ path: envPath });

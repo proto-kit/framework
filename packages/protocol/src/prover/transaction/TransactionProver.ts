@@ -408,8 +408,8 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
 
         proveTransactions: {
           privateInputs: [
-            DynamicRuntimeProof,
-            DynamicRuntimeProof,
+            runtimeProofType,
+            runtimeProofType,
             TransactionProverExecutionData,
             TransactionProverExecutionData,
           ],

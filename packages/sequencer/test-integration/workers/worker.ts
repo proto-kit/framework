@@ -51,7 +51,7 @@ async function main() {
   console.log("Starting worker...");
   console.log(`Worker proofs enabled: ${proofsEnabled}`);
 
-  log.setLevel("DEBUG");
+  log.setLevel("INFO");
 
   await app.start(proofsEnabled, container.createChildContainer());
 

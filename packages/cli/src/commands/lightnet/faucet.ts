@@ -11,7 +11,8 @@ interface FaucetArgs {
 
 export const faucetCommand: CommandModule<{}, FaucetArgs> = {
   command: "faucet <publicKey>",
-  describe: "Send MINA to an account from the lightnet faucet",
+  describe:
+    "Send MINA to an account from the lightnet faucet\n\nRequires: MINA_NODE_GRAPHQL_HOST, MINA_NODE_GRAPHQL_PORT, MINA_ARCHIVE_GRAPHQL_HOST, MINA_ARCHIVE_GRAPHQL_PORT, MINA_ACCOUNT_MANAGER_HOST, MINA_ACCOUNT_MANAGER_PORT",
   builder: (yarg) =>
     addEnvironmentOptions(
       yarg.positional("publicKey", {

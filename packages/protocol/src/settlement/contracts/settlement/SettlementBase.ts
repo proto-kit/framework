@@ -9,6 +9,7 @@ import {
   TokenContract,
   UInt32,
   Permissions,
+  FeatureFlags,
 } from "o1js";
 import {
   ChildVerificationKeyService,
@@ -49,6 +50,8 @@ export class DynamicBlockProof extends DynamicProof<
   public static publicOutputType = BlockProverPublicOutput;
 
   public static maxProofsVerified = 2 as const;
+
+  public static featureFlags = FeatureFlags.allMaybe;
 }
 
 export interface SettlementContractType {

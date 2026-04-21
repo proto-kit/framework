@@ -8,6 +8,7 @@ import {
 import _ from "lodash";
 
 import { TypedClass } from "./types";
+import { log } from "./log";
 
 export function requireTrue(
   condition: boolean,
@@ -317,4 +318,36 @@ export function takeFirst<T>(arr: T[]): T {
     throw new Error("takeFirst called with empty array");
   }
   return arr[0];
+}
+
+export async function tryNTimes<T>(
+  f: () => Promise<T>,
+  times: number,
+  delay?: number
+) {
+  let lastError;
+
+  for (let i = 0; i < times; i++) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      return await f();
+    } catch (e: unknown) {
+      lastError = e;
+      log.warn(`Attempt ${i + 1} failed. Retrying...`);
+
+      if (delay !== undefined) {
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(delay);
+      }
+    }
+  }
+
+  if (lastError instanceof Error) {
+    lastError.message = `Function failed after ${times} tries. Last error: ${lastError.message}`;
+    throw lastError;
+  } else {
+    throw new Error(
+      `Function failed after ${times} tries. Last error: ${lastError}`
+    );
+  }
 }

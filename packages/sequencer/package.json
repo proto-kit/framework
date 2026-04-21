@@ -23,7 +23,7 @@
     "@proto-kit/common": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
-    "o1js": "2.10.0-dev.6d3a3",
+    "o1js": "2.14.0-dev.e1080",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
