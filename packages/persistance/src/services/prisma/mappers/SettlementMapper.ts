@@ -15,7 +15,7 @@ export class SettlementMapper implements ObjectMapper<
       batches,
       transactionHash: settlement.transactionHash,
       promisedMessagesHash: settlement.promisedMessagesHash,
-      createdAt: settlement.createdAt,
+      createdAt: settlement.createdAt.getTime(),
     };
   }
 
@@ -24,7 +24,7 @@ export class SettlementMapper implements ObjectMapper<
       {
         promisedMessagesHash: input.promisedMessagesHash,
         transactionHash: input.transactionHash,
-        createdAt: input.createdAt,
+        createdAt: new Date(input.createdAt),
       },
       input.batches,
     ];

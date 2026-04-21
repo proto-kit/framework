@@ -45,7 +45,7 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       beforeBlockStateTransitions: this.stArrayMapper.mapIn(
         input.beforeBlockStateTransitions
       ),
-      createdAt: input.createdAt,
+      createdAt: new Date(input.createdAt).getTime(),
     };
   }
 
@@ -69,7 +69,7 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       beforeBlockStateTransitions: this.stArrayMapper.mapOut(
         input.beforeBlockStateTransitions
       ),
-      createdAt: input.createdAt,
+      createdAt: new Date(input.createdAt),
     };
   }
 }

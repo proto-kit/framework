@@ -42,7 +42,6 @@ model Transaction {
   signature_s   String
 
   isMessage Boolean
-  createdAt DateTime
 
   executionResult TransactionExecutionResult?
   priority        TransactionPriority?

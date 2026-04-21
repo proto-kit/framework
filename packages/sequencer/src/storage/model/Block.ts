@@ -50,7 +50,7 @@ export interface Block {
   toMessagesHash: Field;
 
   beforeBlockStateTransitions: UntypedStateTransition[];
-  createdAt: Date;
+  createdAt: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -107,7 +107,7 @@ export const BlockWithResult = {
         beforeBlockStateTransitions: [],
 
         previousBlockHash: undefined,
-        createdAt: new Date(),
+        createdAt: Date.now(),
       },
       result: {
         afterNetworkState: NetworkState.empty(),

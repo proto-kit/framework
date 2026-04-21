@@ -15,7 +15,7 @@ export class BatchMapper implements ObjectMapper<
       blockHashes: input[1],
       proof: input[0].proof as JsonProof,
       height: input[0].height,
-      createdAt: input[0].createdAt,
+      createdAt: input[0].createdAt.getTime(),
     };
   }
 
@@ -24,7 +24,7 @@ export class BatchMapper implements ObjectMapper<
       proof: input.proof,
       height: input.height,
       settlementTransactionHash: null,
-      createdAt: input.createdAt,
+      createdAt: new Date(input.createdAt),
     };
     return [batch, []];
   }

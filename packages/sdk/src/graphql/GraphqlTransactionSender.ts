@@ -25,7 +25,7 @@ export class GraphqlTransactionSender
     `;
     const tx = transaction.toJSON();
     const queryResult = await this.graphqlClient.client
-      .mutation(query, { tx: { ...tx, createdAt: undefined } })
+      .mutation(query, { tx })
       .toPromise();
 
     if (queryResult.error === undefined) {

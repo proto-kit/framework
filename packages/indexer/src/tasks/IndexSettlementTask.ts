@@ -46,11 +46,7 @@ export class IndexSettlementTask
       },
       fromJSON: (parameter: string) => {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const parsed = JSON.parse(parameter) as Settlement;
-        return {
-          ...parsed,
-          createdAt: new Date(parsed.createdAt),
-        };
+        return JSON.parse(parameter) as Settlement;
       },
     };
   }

@@ -130,7 +130,6 @@ interface PendingTransactionJSONType {
     s: string;
   };
   isMessage: boolean;
-  createdAt?: Date;
 }
 
 export class PendingTransaction extends UnsignedTransaction {
@@ -146,15 +145,12 @@ export class PendingTransaction extends UnsignedTransaction {
         signature: Signature.fromJSON(object.signature),
         auxiliaryData: object.auxiliaryData.slice(),
         isMessage: object.isMessage,
-        createdAt: object.createdAt ?? new Date(),
       },
       Field(object.hash)
     );
   }
 
   public signature: Signature;
-
-  public createdAt: Date;
 
   public constructor(
     data: {
@@ -165,13 +161,11 @@ export class PendingTransaction extends UnsignedTransaction {
       argsFields: Field[];
       auxiliaryData: string[];
       isMessage: boolean;
-      createdAt?: Date;
     },
     memoizedHash?: Field
   ) {
     super(data, memoizedHash);
     this.signature = data.signature;
-    this.createdAt = data.createdAt ?? new Date();
   }
 
   public toJSON(): PendingTransactionJSONType {
@@ -183,7 +177,6 @@ export class PendingTransaction extends UnsignedTransaction {
       argsFields: this.argsFields.map((x) => x.toJSON()),
       auxiliaryData: this.auxiliaryData.slice(),
       isMessage: this.isMessage,
-      createdAt: this.createdAt,
 
       signature: {
         r: this.signature.r.toJSON(),

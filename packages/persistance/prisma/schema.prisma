@@ -50,7 +50,6 @@ model Transaction {
   signature_s   String
 
   isMessage Boolean
-  createdAt DateTime @default(now())
 
   executionResult TransactionExecutionResult?
 

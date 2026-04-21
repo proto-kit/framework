@@ -52,7 +52,7 @@ export class PrismaBatchStore implements BatchStorage {
       data: {
         proof: entity.proof as Prisma.InputJsonValue,
         height,
-        createdAt: batch.createdAt,
+        createdAt: new Date(batch.createdAt),
         blocks: {
           connect: batch.blockHashes.map((hash) => ({
             hash,
