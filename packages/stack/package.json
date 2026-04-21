@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/stack",
-  "version": "0.1.1-develop.2137+8a7eca31",
+  "version": "0.1.1-develop.2357+32f368c2",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -21,6 +21,7 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@o1js/native": "2.10.0-dev.6d3a3",
     "@proto-kit/api": "*",
     "@proto-kit/common": "*",
     "@proto-kit/deployment": "*",
@@ -33,7 +34,6 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "o1js": "2.14.0-dev.e1080",
-    "@o1js/native": "2.10.0-dev.6d3a3",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
@@ -46,5 +46,5 @@
     "reflect-metadata": "^0.1.13",
     "type-graphql": "2.0.0-rc.2"
   },
-  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
+  "gitHead": "32f368c2adf45ca3c5e22a7768ecfad469f6ceb8"
 }
