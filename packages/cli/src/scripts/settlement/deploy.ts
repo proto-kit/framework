@@ -49,11 +49,7 @@ export default async function (options: LoadEnvOptions) {
         BridgingModule,
         Mempool: PrivateMempool,
         TaskQueue: LocalTaskQueue,
-<<<<<<< fix/-cli-deploy-script
-        LocalTaskWorker: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
-=======
         WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
->>>>>>> develop
         SequencerStartupModule,
       }),
     });
