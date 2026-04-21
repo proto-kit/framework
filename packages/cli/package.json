@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/cli",
-  "version": "0.1.1-develop.2137+8a7eca31",
+  "version": "0.1.1-develop.2357+32f368c2",
   "type": "module",
   "main": "./bin/protokit-cli.js",
   "bin": {
@@ -38,11 +38,11 @@
     "@proto-kit/indexer": "*",
     "@proto-kit/library": "*",
     "@proto-kit/module": "*",
+    "@proto-kit/persistance": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "@proto-kit/stack": "*",
-    "@proto-kit/persistance": "*",
     "o1js": "2.14.0-dev.e1080",
     "tsyringe": "^4.10.0"
   },
@@ -51,5 +51,5 @@
     "@types/node": "^20.19.24",
     "@types/yargs": "17.0.32"
   },
-  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
+  "gitHead": "32f368c2adf45ca3c5e22a7768ecfad469f6ceb8"
 }
