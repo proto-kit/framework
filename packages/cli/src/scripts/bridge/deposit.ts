@@ -1,4 +1,5 @@
 import { DispatchSmartContract } from "@proto-kit/protocol";
+import { InMemoryDatabase } from "@proto-kit/sequencer";
 
 import {
   loadEnvironmentVariables,
@@ -25,6 +26,9 @@ export default async function (
       );
     }
     loadEnvironmentVariables(options);
+    const { scriptModules, scriptModulesConfig } =
+      await import("../../utils/modules");
+
     const {
       BridgingModule,
       MinaTransactionSender,
@@ -34,7 +38,6 @@ export default async function (
     } = await import("@proto-kit/sequencer");
     const { Runtime } = await import("@proto-kit/module");
     const { Protocol } = await import("@proto-kit/protocol");
-    const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
     const {
       AccountUpdate,
       fetchAccount,
@@ -87,8 +90,8 @@ export default async function (
         ...protocol.settlementModules,
       }),
       Sequencer: Sequencer.from({
-        ...DefaultModules.inMemoryDatabase(),
-        ...DefaultModules.settlementScript(),
+        Database: InMemoryDatabase,
+        ...scriptModules,
       }),
     });
 
@@ -99,10 +102,8 @@ export default async function (
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
-        ...DefaultConfigs.inMemoryDatabase(),
-        ...DefaultConfigs.settlementScript({
-          preset: "development",
-        }),
+        Database: {},
+        ...scriptModulesConfig,
       },
     });
 

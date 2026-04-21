@@ -4,7 +4,11 @@ import { DispatchSmartContract } from "@proto-kit/protocol";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
-import { loadEnvironmentVariables, LoadEnvOptions } from "../../utils/loadEnv";
+import {
+  getRequiredEnv,
+  loadEnvironmentVariables,
+  LoadEnvOptions,
+} from "../../utils/loadEnv";
 import { loadUserModules } from "../../utils/loadUserModules";
 
 export interface TokenDeployArgs {
@@ -25,6 +29,8 @@ export default async function (
       );
     }
     loadEnvironmentVariables(options);
+    const { scriptModules, scriptModulesConfig } =
+      await import("../../utils/modules");
 
     const { Runtime } = await import("@proto-kit/module");
     const { Protocol } = await import("@proto-kit/protocol");
@@ -51,7 +57,6 @@ export default async function (
     } = await import("o1js");
     const { FungibleToken, FungibleTokenAdmin } =
       await import("mina-fungible-token");
-    const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
 
     const { runtime, protocol } = await loadUserModules();
     const appChain = AppChain.from({
@@ -60,10 +65,7 @@ export default async function (
         ...protocol.modules,
         ...protocol.settlementModules,
       }),
-      Sequencer: Sequencer.from({
-        ...DefaultModules.prismaRedisDatabase(),
-        ...DefaultModules.settlementScript(),
-      }),
+      Sequencer: Sequencer.from(scriptModules),
     });
 
     appChain.configure({
@@ -73,15 +75,7 @@ export default async function (
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
-        ...DefaultConfigs.prismaRedisDatabase({
-          preset: "development",
-          overrides: {
-            pruneOnStartup: false,
-          },
-        }),
-        ...DefaultConfigs.settlementScript({
-          preset: "development",
-        }),
+        ...scriptModulesConfig,
       },
     });
 
@@ -256,10 +250,10 @@ export default async function (
 
     Provable.log("Deployed and initialized settlement contracts", {
       settlement: PrivateKey.fromBase58(
-        process.env.PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY!
+        getRequiredEnv("PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY")
       ).toPublicKey(),
       dispatcher: PrivateKey.fromBase58(
-        process.env.PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY!
+        getRequiredEnv("PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY")
       ).toPublicKey(),
     });
 

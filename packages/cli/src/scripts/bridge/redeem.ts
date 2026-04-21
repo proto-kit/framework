@@ -1,3 +1,5 @@
+import { InMemoryDatabase } from "@proto-kit/sequencer";
+
 import {
   loadEnvironmentVariables,
   getRequiredEnv,
@@ -22,6 +24,8 @@ export default async function (
       );
     }
     loadEnvironmentVariables(options);
+    const { scriptModules, scriptModulesConfig } =
+      await import("../../utils/modules");
 
     const {
       BridgingModule,
@@ -42,7 +46,6 @@ export default async function (
       UInt64,
     } = await import("o1js");
     const { FungibleToken } = await import("mina-fungible-token");
-    const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
     const { runtime, protocol } = await loadUserModules();
     const tokenId = Field(bridgeArgs.tokenId);
     const toPrivateKey = PrivateKey.fromBase58(
@@ -72,8 +75,8 @@ export default async function (
         ...protocol.settlementModules,
       }),
       Sequencer: Sequencer.from({
-        ...DefaultModules.inMemoryDatabase(),
-        ...DefaultModules.settlementScript(),
+        Database: InMemoryDatabase,
+        ...scriptModules,
       }),
     });
 
@@ -84,10 +87,8 @@ export default async function (
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
-        ...DefaultConfigs.inMemoryDatabase(),
-        ...DefaultConfigs.settlementScript({
-          preset: "development",
-        }),
+        Database: {},
+        ...scriptModulesConfig,
       },
     });
 

@@ -3,6 +3,7 @@ import fs from "fs";
 
 export function resolveChainPath(isFolderRequired?: boolean): string {
   let currentDir = process.cwd();
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const candidate = path.join(currentDir, "packages", "chain");
 
