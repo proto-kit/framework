@@ -25,7 +25,7 @@ import {
 } from "./modules";
 import { ChildProcessWorker } from "./ChildProcessWorker";
 
-const timeout = 300000;
+const timeout = 400000;
 
 // true
 const proofsEnabled = false;
