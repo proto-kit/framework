@@ -1,4 +1,4 @@
-import { EventEmitter, log, noop } from "@proto-kit/common";
+import { dependencyFactory, EventEmitter, log, noop } from "@proto-kit/common";
 import { inject } from "tsyringe";
 
 import type { Mempool, MempoolEvents } from "../Mempool";
@@ -14,6 +14,7 @@ import { trace } from "../../logging/trace";
 import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 import { MempoolSorting } from "../sorting/MempoolSorting";
 import { DefaultMempoolSorting } from "../sorting/DefaultMempoolSorting";
+import { MempoolInstrumentation } from "../../metrics/MempoolInstrumentation";
 
 type PrivateMempoolConfig = {
   type?: "hybrid" | "private" | "based";
@@ -21,6 +22,7 @@ type PrivateMempoolConfig = {
 };
 
 @sequencerModule()
+@dependencyFactory()
 export class PrivateMempool
   extends SequencerModule<PrivateMempoolConfig>
   implements Mempool
@@ -41,6 +43,14 @@ export class PrivateMempool
   ) {
     super();
     this.mempoolSorting = mempoolSorting ?? new DefaultMempoolSorting();
+  }
+
+  public static dependencies() {
+    return {
+      MempoolInstrumentation: {
+        useClass: MempoolInstrumentation,
+      },
+    };
   }
 
   private type() {

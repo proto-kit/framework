@@ -1,6 +1,7 @@
 import {
   Block,
   BlockQueue,
+  BlockStorage,
   task,
   Task,
   TaskSerializer,
@@ -15,11 +16,18 @@ import {
   IndexBlockTaskParametersSerializer,
 } from "./IndexBlockTaskParameters";
 
+export type IndexBlockResult =
+  | { status: "ok" }
+  | {
+      status: "missing-blocks";
+      missingHeights: number[];
+    };
+
 @injectable()
 @task()
 export class IndexBlockTask
   extends TaskWorkerModule
-  implements Task<IndexBlockTaskParameters, string | void>
+  implements Task<IndexBlockTaskParameters[], IndexBlockResult>
 {
   public name = "index-block";
 
@@ -27,6 +35,8 @@ export class IndexBlockTask
     public taskSerializer: IndexBlockTaskParametersSerializer,
     @inject("BlockQueue")
     public blockStorage: BlockQueue,
+    @inject("BlockStorage")
+    private readonly blockRepository: BlockStorage,
     @inject("TransactionStorage")
     public transactionStorage: TransactionStorage
   ) {
@@ -63,29 +73,68 @@ export class IndexBlockTask
   }
 
   public async compute(
-    input: IndexBlockTaskParameters
-  ): Promise<string | void> {
+    input: IndexBlockTaskParameters[]
+  ): Promise<IndexBlockResult> {
+    // We have two scenarios here:
+    // - In normal indexing, we only receive a single block.
+    // - If we receive multiple blocks, it means we’re indexing missing blocks
+    // that were generated using Array.from()
+    // Therefore, the incoming input array will always be in-order
+    const firstBlockHeight = Number(input[0].block.height.toBigInt());
+
     try {
-      await this.syncTransactions(input.block);
-      await this.blockStorage.pushBlock(input.block);
-      await this.blockStorage.pushResult(input.result);
+      const currentHeight = await this.blockRepository.getCurrentBlockHeight();
+
+      // We rely on the block storage to enforce some sort of internal consistency
+      // i.e. it throws an error when we try to insert a block whose parent isn't
+      // stored yet. Therefore, we can rely on the height indicating that all
+      // previous blocks are existent - so we only check for that here
+      if (firstBlockHeight > currentHeight) {
+        const missingHeights = Array.from(
+          { length: firstBlockHeight - currentHeight + 1 },
+          (_, i) => currentHeight + i
+        );
+        return { status: "missing-blocks", missingHeights };
+      }
+
+      for (const blockWithResult of input) {
+        const height = Number(blockWithResult.block.height.toBigInt());
+        // eslint-disable-next-line no-await-in-loop
+        await this.syncTransactions(blockWithResult.block);
+        // eslint-disable-next-line no-await-in-loop
+        await this.blockStorage.pushBlock(blockWithResult.block);
+        // eslint-disable-next-line no-await-in-loop
+        await this.blockStorage.pushResult(blockWithResult.result);
+        log.info(`Block ${height} indexed successfully`);
+      }
+
+      return { status: "ok" };
     } catch (error) {
-      log.error("Failed to index block", input.block.height.toBigInt(), error);
-      return undefined;
+      log.error("Failed to index block", firstBlockHeight, error);
+      return { status: "ok" };
     }
-
-    log.info(`Block ${input.block.height.toBigInt()} indexed successfully`);
-    return "";
   }
 
-  public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {
-    return this.taskSerializer;
-  }
-
-  public resultSerializer(): TaskSerializer<string | void> {
+  public inputSerializer(): TaskSerializer<IndexBlockTaskParameters[]> {
     return {
-      fromJSON: async () => {},
-      toJSON: async () => "",
+      toJSON: (blocks: IndexBlockTaskParameters[]): string =>
+        JSON.stringify(blocks.map((b) => this.taskSerializer.toJSON(b))),
+
+      fromJSON: (json: string): IndexBlockTaskParameters[] => {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const items = JSON.parse(json) as string[];
+        return items.map((item) => this.taskSerializer.fromJSON(item));
+      },
+    };
+  }
+
+  public resultSerializer(): TaskSerializer<IndexBlockResult> {
+    return {
+      toJSON: async (input: IndexBlockResult) => JSON.stringify(input),
+
+      fromJSON: async (json: string) =>
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        JSON.parse(json) as IndexBlockResult,
     };
   }
 }

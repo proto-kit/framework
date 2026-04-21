@@ -4,6 +4,7 @@ import { Poseidon } from "o1js";
 import { inject, injectable } from "tsyringe";
 
 import {
+  combineMethodName,
   RuntimeMethodInvocationType,
   runtimeMethodTypeMetadataKey,
 } from "../method/runtimeMethod";
@@ -41,6 +42,10 @@ export class MethodIdResolver {
     }, {});
   }
 
+  public getAllRuntimeMethodNames() {
+    return Object.values(this.dictionary);
+  }
+
   /**
    * The purpose of this method is to provide a dictionary where
    * we can look up properties like methodId and invocationType
@@ -64,7 +69,7 @@ export class MethodIdResolver {
 
         if (type !== undefined) {
           return {
-            name: `${moduleName}.${method}`,
+            name: combineMethodName(moduleName, method),
             methodId: methodIdResolver.getMethodId(moduleName, method),
             type,
           } as const;

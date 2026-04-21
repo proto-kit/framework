@@ -3,7 +3,6 @@ import {
   Protocol,
   ProtocolModulesRecord,
   StateServiceProvider,
-  DynamicRuntimeProof,
   TransactionProvable,
   TransactionProof,
   TransactionProverPublicInput,
@@ -129,6 +128,9 @@ export class TransactionProvingTask
     if (input === "dummy") {
       return await this.computeDummy();
     }
+
+    const DynamicRuntimeProof =
+      await this.runtime.zkProgrammable.dynamicProofType();
 
     const startingState = input.flatMap((i) => i.parameters.startingState);
 

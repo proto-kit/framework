@@ -19,5 +19,8 @@ export interface BlockStorage {
   pushBlock: (block: Block) => Promise<void>;
 
   getBlockAt: (height: number) => Promise<Block | undefined>;
+  getBlockWithResultAt: (
+    height: number
+  ) => Promise<BlockWithResult | undefined>;
   getBlock: (hash: string) => Promise<Block | undefined>;
 }

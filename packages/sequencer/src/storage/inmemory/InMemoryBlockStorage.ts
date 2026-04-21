@@ -23,6 +23,17 @@ export class InMemoryBlockStorage implements BlockStorage, BlockQueue {
     return this.blocks.at(height);
   }
 
+  public async getBlockWithResultAt(
+    height: number
+  ): Promise<BlockWithResult | undefined> {
+    const block = this.blocks.at(height);
+    const result = this.results.at(height);
+    if (block === undefined || result === undefined) {
+      return undefined;
+    }
+    return { block, result };
+  }
+
   public async getCurrentBlockHeight(): Promise<number> {
     return this.blocks.length;
   }

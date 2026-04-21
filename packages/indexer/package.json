@@ -43,7 +43,7 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "koa": "^2.14.2",
-    "o1js": "2.10.0-dev.6d3a3",
+    "o1js": "2.14.0-dev.e1080",
     "tsyringe": "^4.10.0",
     "type-graphql": "2.0.0-rc.2",
     "typegraphql-prisma": "0.28"

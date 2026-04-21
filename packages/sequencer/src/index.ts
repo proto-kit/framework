@@ -136,3 +136,6 @@ export * from "./appChain/AppChain";
 export * from "./appChain/AppChainModule";
 export * from "./appChain/AreProofsEnabledFactory";
 export * from "./appChain/SharedDependencyFactory";
+export * from "./metrics/Instrumentation";
+export * from "./metrics/BlockProductionInstrumentation";
+export * from "./metrics/MempoolInstrumentation";

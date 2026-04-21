@@ -1,8 +1,4 @@
-import {
-  Sequencer,
-  SequencerModule,
-  sequencerModule,
-} from "@proto-kit/sequencer";
+import { SequencerModule, sequencerModule } from "@proto-kit/sequencer";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { Resource } from "@opentelemetry/resources";
 import {
@@ -14,10 +10,15 @@ import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runti
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { inject } from "tsyringe";
-import { dependencyFactory, DependencyRecord, log } from "@proto-kit/common";
+import {
+  dependencyFactory,
+  DependencyRecord,
+  log,
+  ModuleContainerLike,
+} from "@proto-kit/common";
 
-import { SequencerInstrumentation } from "./SequencerInstrumentation";
 import { OpenTelemetryTracer } from "./OpenTelemetryTracer";
+import { ModularizedInstrumentation } from "./ModularizedInstrumentation";
 
 export type OpenTelemetryServerConfig = {
   metrics?: {
@@ -35,7 +36,8 @@ export type OpenTelemetryServerConfig = {
 @dependencyFactory()
 export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConfig> {
   public constructor(
-    @inject("Sequencer") private readonly sequencer: Sequencer<any>
+    @inject("ParentContainer")
+    private readonly parentContainer: ModuleContainerLike
   ) {
     super();
   }
@@ -54,9 +56,8 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
       config: { metrics, tracing },
     } = this;
 
-    // TODO Modularize Instrumentations
-    const seqMetrics = this.sequencer.dependencyContainer.resolve(
-      SequencerInstrumentation
+    const seqMetrics = this.parentContainer.dependencyContainer.resolve(
+      ModularizedInstrumentation
     );
 
     const metricReader =
@@ -90,6 +91,8 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
     });
 
     sdk.start();
+
+    await seqMetrics.start();
 
     // TODO Write logger to directly integrate with our logging library
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);

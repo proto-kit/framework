@@ -1,4 +1,3 @@
-// eslint-disable-next-line max-classes-per-file
 import { CompilableModule, WithZkProgrammable } from "@proto-kit/common";
 import { DynamicProof, Field, Proof, Signature, Struct, Void } from "o1js";
 
@@ -129,17 +128,7 @@ export class TransactionProverTransactionArguments extends Struct({
   verificationKeyAttestation: RuntimeVerificationKeyAttestation,
 }) {}
 
-export class DynamicRuntimeProof extends DynamicProof<
-  Void,
-  MethodPublicOutput
-> {
-  static publicInputType = Void;
-
-  static publicOutputType = MethodPublicOutput;
-
-  // TODO this won't be 0 for proofs-as-args
-  static maxProofsVerified = 0 as const;
-}
+export type DynamicRuntimeProof = DynamicProof<Void, MethodPublicOutput>;
 
 export class TransactionProverExecutionData extends Struct({
   transaction: TransactionProverTransactionArguments,

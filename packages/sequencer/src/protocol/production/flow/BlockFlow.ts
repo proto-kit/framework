@@ -5,8 +5,13 @@ import {
   TransactionProof,
 } from "@proto-kit/protocol";
 import { mapSequential } from "@proto-kit/common";
-// eslint-disable-next-line import/no-extraneous-dependencies
-import chunk from "lodash/chunk";
+import {
+  combineMethodName,
+  MethodIdResolver,
+  Runtime,
+  RuntimeModulesRecord,
+} from "@proto-kit/module";
+import { Memoize } from "typescript-memoize";
 
 import { TransactionProvingTask } from "../tasks/TransactionProvingTask";
 import { FlowCreator } from "../../../worker/flow/Flow";
@@ -24,9 +29,13 @@ export class BlockFlow {
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
+    @inject("Runtime")
+    private readonly runtime: Runtime<RuntimeModulesRecord>,
     private readonly runtimeFlow: TransactionFlow,
     private readonly transactionTask: TransactionProvingTask,
-    private readonly transactionMergeTask: TransactionReductionTask
+    private readonly transactionMergeTask: TransactionReductionTask,
+    @inject("MethodIdResolver")
+    private readonly methodIdResolver: MethodIdResolver
   ) {}
 
   private dummyProof: TransactionProof | undefined = undefined;
@@ -46,11 +55,62 @@ export class BlockFlow {
     return dummy;
   }
 
+  @Memoize()
+  private getMethodNameBuckets() {
+    return this.runtime.bucketRuntimeMethods(
+      this.methodIdResolver
+        .getAllRuntimeMethodNames()
+        .map(({ moduleName, methodName }) =>
+          combineMethodName(moduleName, methodName)
+        )
+    );
+  }
+
+  private findZkProgramIndex(trace: TransactionTrace) {
+    const methodName = this.methodIdResolver.getMethodNameFromId(
+      trace.runtime.tx.methodId.toBigInt()
+    )!;
+
+    return this.getMethodNameBuckets().findIndex((bucket) =>
+      bucket.includes(combineMethodName(methodName[0], methodName[1]))
+    );
+  }
+
+  private chunkTransactions(tracesInput: TransactionTrace[]) {
+    const chunks = [];
+    const traces = tracesInput.slice().reverse();
+
+    while (traces.length > 0) {
+      const first = traces.pop()!;
+      const firstZkProgramIndex = this.findZkProgramIndex(first);
+
+      const second = traces.at(-1);
+      let secondZkProgramIndex = -1;
+      if (second !== undefined) {
+        secondZkProgramIndex = this.findZkProgramIndex(second);
+      }
+
+      if (
+        second !== undefined &&
+        secondZkProgramIndex === firstZkProgramIndex
+      ) {
+        traces.pop();
+        chunks.push([first, second]);
+      } else {
+        chunks.push([first]);
+      }
+    }
+
+    return chunks;
+  }
+
   private async proveTransactions(height: string, traces: TransactionTrace[]) {
+    const traceChunks = this.chunkTransactions(traces);
+
     const flow = new ReductionTaskFlow(
       {
         name: `transaction-${height}`,
-        inputLength: Math.ceil(traces.length / 2),
+        inputLength: traceChunks.length,
         mappingTask: this.transactionTask,
         reductionTask: this.transactionMergeTask,
         mergableFunction: (a, b) =>
@@ -66,7 +126,7 @@ export class BlockFlow {
       this.flowCreator
     );
 
-    await mapSequential(chunk(traces, 2), async (traceChunk, index) => {
+    await mapSequential(traceChunks, async (traceChunk, index) => {
       await this.runtimeFlow.proveRuntimes(
         traceChunk,
         height,
