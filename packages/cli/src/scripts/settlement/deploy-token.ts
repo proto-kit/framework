@@ -66,10 +66,7 @@ export default async function (
         ...protocol.modules,
         ...protocol.settlementModules,
       }),
-      Sequencer: Sequencer.from({
-        Database: PrismaRedisDatabase,
-        ...scriptModules,
-      }),
+      Sequencer: Sequencer.from(scriptModules),
     });
 
     appChain.configure({
@@ -79,17 +76,6 @@ export default async function (
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
-        Database: {
-          redis: {
-            host: getRequiredEnv("REDIS_HOST"),
-            port: Number(getRequiredEnv("REDIS_PORT")),
-            password: getRequiredEnv("REDIS_PASSWORD"),
-          },
-          prisma: {
-            connection: getRequiredEnv("DATABASE_URL"),
-          },
-          pruneOnStartup: false,
-        },
         ...scriptModulesConfig,
       },
     });

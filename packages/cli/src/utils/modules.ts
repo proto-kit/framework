@@ -1,28 +1,25 @@
 import {
-  PrivateMempool,
   SequencerStartupModule,
   WorkerModule,
   VanillaTaskWorkerModules,
   MinaBaseLayer,
   ConstantFeeStrategy,
-  BatchProducerModule,
   SettlementModule,
   LocalTaskQueue,
   InMemoryMinaSigner,
   BridgingModule,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
+import { ModulesConfig } from "@proto-kit/common";
 
 import { getRequiredEnv } from "./loadEnv";
 
 export const scriptModules = {
   BaseLayer: MinaBaseLayer,
   FeeStrategy: ConstantFeeStrategy,
-  BatchProducerModule,
   SettlementModule,
   SettlementSigner: InMemoryMinaSigner,
   BridgingModule,
-  Mempool: PrivateMempool,
   TaskQueue: LocalTaskQueue,
   WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
   SequencerStartupModule,
@@ -69,12 +66,9 @@ export const scriptModulesConfig = {
     ],
   },
   FeeStrategy: {},
-  BatchProducerModule: {},
   WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
   SequencerStartupModule: {},
   TaskQueue: {
     simulatedDuration: 0,
   },
-  LocalTaskWorker: VanillaTaskWorkerModules.defaultConfig(),
-  Mempool: {},
-};
+} satisfies ModulesConfig<typeof scriptModules>;

@@ -33,7 +33,6 @@ export default async function (options: LoadEnvOptions) {
         ...protocol.settlementModules,
       }),
       Sequencer: Sequencer.from({
-        Database: InMemoryDatabase,
         ...scriptModules,
       }),
     });
@@ -45,7 +44,6 @@ export default async function (options: LoadEnvOptions) {
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
-        Database: {},
         ...scriptModulesConfig,
         SettlementModule: {
           addresses: undefined,
@@ -58,7 +56,6 @@ export default async function (options: LoadEnvOptions) {
           simulatedDuration: 0,
         },
         WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
-        Mempool: {},
       },
     });
 
