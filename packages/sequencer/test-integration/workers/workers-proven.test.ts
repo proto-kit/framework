@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
-import { expectDefined, log } from "@proto-kit/common";
+import { expectDefined } from "@proto-kit/common";
 import { BullQueue } from "@proto-kit/deployment";
 
 import {
