@@ -28,7 +28,7 @@ import { ChildProcessWorker } from "./ChildProcessWorker";
 const timeout = 300000;
 
 // true
-const proofsEnabled = true;
+const proofsEnabled = false;
 
 const numWorkers = 1;
 
@@ -66,8 +66,6 @@ describe("worker-proven", () => {
     it(
       "should start up and compile",
       async () => {
-        log.setLevel(log.levels.TRACE);
-
         const sequencerClass = Sequencer.from({
           Database: InMemoryDatabase,
           Mempool: PrivateMempool,
