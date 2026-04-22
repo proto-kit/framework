@@ -6,5 +6,8 @@
     "./typedoc-title-annotate.mjs"
   ],
   "entryPoints": ["packages/*"],
-  "entryPointStrategy": "packages"
+  "entryPointStrategy": "packages",
+  "packageOptions": {
+    "entryPoints": ["src/index.ts"]
+  }
 }
