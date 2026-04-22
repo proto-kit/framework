@@ -7,6 +7,7 @@ import {
   ProvablePure,
   Struct,
 } from "o1js";
+
 import { assert } from "../state/assert/assert";
 
 export class ProvableOption extends Struct({
