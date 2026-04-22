@@ -120,6 +120,7 @@ export class BatchProducerModule extends SequencerModule {
         height,
         fromNetworkState: batch.fromNetworkState,
         toNetworkState: batch.toNetworkState,
+        createdAt: Date.now(),
       },
 
       changes: batch.changes,

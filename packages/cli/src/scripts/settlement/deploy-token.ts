@@ -43,6 +43,7 @@ export default async function (
       SignedSettlementPermissions,
       AppChain,
       BridgingModule,
+      InMemoryDatabase,
     } = await import("@proto-kit/sequencer");
     const {
       AccountUpdate,
@@ -65,7 +66,10 @@ export default async function (
         ...protocol.modules,
         ...protocol.settlementModules,
       }),
-      Sequencer: Sequencer.from(scriptModules),
+      Sequencer: Sequencer.from({
+        Database: InMemoryDatabase,
+        ...scriptModules,
+      }),
     });
 
     appChain.configure({
@@ -75,6 +79,7 @@ export default async function (
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
+        Database: {},
         ...scriptModulesConfig,
       },
     });
