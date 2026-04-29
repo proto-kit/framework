@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.1-develop.2357+32f368c2",
+  "version": "0.2.0",
   "scripts": {
     "build": "npm run prisma:generate && tsc -p tsconfig.json",
     "prisma:generate": "npx prisma generate",

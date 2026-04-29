@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/stack",
-  "version": "0.1.1-develop.2357+32f368c2",
+  "version": "0.2.0",
   "license": "MIT",
   "private": false,
   "type": "module",
