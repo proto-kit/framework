@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 
+## 0.2.0
+
 ### Added
 - Added createdAt timestamp to block, batch and settlement models.[#502](https://github.com/proto-kit/framework/pull/502)
 - Added missing block detection and recovery in the indexer.[#488](https://github.com/proto-kit/framework/pull/488)
