@@ -7,7 +7,7 @@ export const wizardCommand: CommandModule<{}> = {
   handler: async () => {
     try {
       const { default: createEnvironment } =
-        await import("../scripts/env/create-environment");
+        await import("../scripts/wizard/generate");
       await createEnvironment();
       process.exit(0);
     } catch (error) {
