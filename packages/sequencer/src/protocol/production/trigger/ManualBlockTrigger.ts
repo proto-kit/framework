@@ -55,8 +55,11 @@ export class ManualBlockTrigger
     return await super.produceBatch();
   }
 
-  public async settle(batch: SettleableBatch, config: SettlementTokenConfig) {
-    return await super.settle(batch, config);
+  public async settle(
+    batches: SettleableBatch[],
+    config: SettlementTokenConfig
+  ) {
+    return await super.settle(batches, config);
   }
 
   public async produceBlock(): Promise<Block | undefined> {

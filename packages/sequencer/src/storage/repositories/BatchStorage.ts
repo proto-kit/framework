@@ -5,4 +5,5 @@ export interface BatchStorage {
   getLatestBatch: () => Promise<Batch | undefined>;
   pushBatch: (block: Batch) => Promise<void>;
   getBatchAt: (height: number) => Promise<Batch | undefined>;
+  getUnsettledBatches: () => Promise<Batch[]>;
 }

@@ -15,6 +15,7 @@ import { ensureNotBusy } from "../../../helpers/BusyGuard";
 import { SequencerStartupModule } from "../../../sequencer/SequencerStartupModule";
 import { BlockProductionInstrumentation } from "../../../metrics/BlockProductionInstrumentation";
 import { SequencerCoreModule } from "../../../sequencer/SequencerCoreModule";
+import { Batch } from "../../../storage/model/Batch";
 
 import { BlockTriggerBase } from "./BlockTrigger";
 
@@ -34,6 +35,8 @@ export class TimedBlockTrigger
   implements Closeable
 {
   private intervals: NodeJS.Timeout[] = [];
+
+  private isFirstSettlement = true;
 
   public constructor(
     @inject("BatchProducerModule", { isOptional: true })
@@ -87,23 +90,15 @@ export class TimedBlockTrigger
     }
 
     const blockIntervalId = setInterval(async () => {
-      try {
-        // Trigger unproven blocks
-        await this.produceUnprovenBlock();
-      } catch (error) {
-        log.error(error);
-      }
+      // Trigger unproven blocks
+      await this.produceUnprovenBlock();
     }, blockInterval);
     this.intervals.push(blockIntervalId);
 
     if (settlementInterval !== undefined) {
       const settlementIntervalId = setInterval(async () => {
-        try {
-          // Trigger settlement
-          await this.tryProduceSettlement();
-        } catch (error) {
-          log.error(error);
-        }
+        // Trigger settlement
+        await this.tryProduceSettlement();
       }, settlementInterval);
       this.intervals.push(settlementIntervalId);
     }
@@ -126,8 +121,17 @@ export class TimedBlockTrigger
   @ensureNotBusy()
   private async tryProduceSettlement(): Promise<void> {
     const batch = await this.produceBatch();
-    if (batch !== undefined) {
-      await this.settle(batch, this.config.settlementTokenConfig);
+
+    let batches: Batch[] | undefined = undefined;
+    if (this.isFirstSettlement) {
+      batches = await this.batchProducerModule?.getSettleableBatches();
+      this.isFirstSettlement = false;
+    } else if (batch !== undefined) {
+      batches = [batch];
+    }
+
+    if (batches !== undefined) {
+      await this.settle(batches, this.config.settlementTokenConfig);
     }
   }
 

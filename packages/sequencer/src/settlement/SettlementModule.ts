@@ -40,6 +40,7 @@ import {
   AddressRegistry,
   InMemoryAddressRegistry,
 } from "./interactions/AddressRegistry";
+import { BatchMergingFlow } from "./tasks/BatchMergingFlow";
 
 export type SettlementModuleConfig = {
   addresses?: {
@@ -74,7 +75,8 @@ export class SettlementModule
     private readonly parentContainer: ModuleContainerLike,
     @inject("AddressRegistry")
     private readonly addressRegistry: AddressRegistry,
-    private readonly argsRegistry: ContractArgsRegistry
+    private readonly argsRegistry: ContractArgsRegistry,
+    private readonly batchMergingFlow: BatchMergingFlow
   ) {
     super();
     this.utils = new SettlementUtils(this.baseLayer, this.signer);
@@ -146,11 +148,23 @@ export class SettlementModule
   }
 
   public async settleBatch(
-    batch: SettleableBatch,
+    batches: SettleableBatch[],
     options: {
       nonce?: number;
     } = {}
   ): Promise<Settlement> {
+    let batch: SettleableBatch;
+
+    if (batches.length === 0) {
+      throw new Error("No batches given for settlement");
+    } else if (batches.length === 1) {
+      [batch] = batches;
+    } else if (batches.length > 1) {
+      log.info(`Merging ${batches.length} batch proofs`);
+
+      batch = await this.batchMergingFlow.mergeBatches(batches);
+    }
+
     log.debug("Preparing settlement");
 
     const bridgingModule = this.bridgingModule();

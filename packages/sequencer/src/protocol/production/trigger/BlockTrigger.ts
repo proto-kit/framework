@@ -93,7 +93,7 @@ export class BlockTriggerBase<
   }
 
   protected async settle(
-    batch: SettleableBatch,
+    batches: SettleableBatch[],
     config: SettlementTokenConfig
     // nonce?: number
   ) {
@@ -103,10 +103,10 @@ export class BlockTriggerBase<
       );
       return undefined;
     }
-    const settlement = await this.settlementModule.settleBatch(batch);
+    const settlement = await this.settlementModule.settleBatch(batches);
 
     const txs = await this.bridgingModule?.sendRollupTransactions(
-      [batch],
+      batches,
       config
       // TODO nonce override
     );

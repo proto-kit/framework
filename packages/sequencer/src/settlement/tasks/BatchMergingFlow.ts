@@ -52,6 +52,8 @@ export class BatchMergingFlow {
       height: batches[0].height,
       blockHashes: batches.flatMap((batch) => batch.blockHashes),
       createdAt: Date.now(),
+      fromNetworkState: batches[0].fromNetworkState,
+      toNetworkState: batches.at(-1)!.toNetworkState,
     };
   }
 }

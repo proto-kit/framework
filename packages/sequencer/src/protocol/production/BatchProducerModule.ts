@@ -97,6 +97,10 @@ export class BatchProducerModule extends SequencerModule {
     return batchWithStateDiff?.batch;
   }
 
+  public async getSettleableBatches() {
+    return await this.batchStorage.getUnsettledBatches();
+  }
+
   public async start(): Promise<void> {
     noop();
   }
