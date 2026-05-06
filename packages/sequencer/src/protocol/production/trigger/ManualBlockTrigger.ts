@@ -13,6 +13,7 @@ import {
 } from "../../../settlement/BridgingModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { match, P } from "ts-pattern";
 
 @sequencerModule()
 export class ManualBlockTrigger
@@ -56,10 +57,16 @@ export class ManualBlockTrigger
   }
 
   public async settle(
-    batches: SettleableBatch[],
+    batches: SettleableBatch | SettleableBatch[],
     config: SettlementTokenConfig
   ) {
-    return await super.settle(batches, config);
+    let batchArray: SettleableBatch[];
+    if (Array.isArray(batches)) {
+      batchArray = batches;
+    } else {
+      batchArray = [batches];
+    }
+    return await super.settle(batchArray, config);
   }
 
   public async produceBlock(): Promise<Block | undefined> {
