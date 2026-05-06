@@ -3,7 +3,7 @@ import { JsonProof } from "o1js";
 import { mapSequential } from "@proto-kit/common";
 import { BlockProof } from "@proto-kit/protocol";
 
-import { Batch } from "../../storage/model/Batch";
+import { SettleableBatch } from "../../storage/model/Batch";
 import { FlowCreator } from "../../worker/flow/Flow";
 import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
 import { BlockProofSerializer } from "../../protocol/production/tasks/serializers/BlockProofSerializer";
@@ -17,7 +17,9 @@ export class BatchMergingFlow {
     private readonly blockProofSerializer: BlockProofSerializer
   ) {}
 
-  public async mergeBatches(batches: Batch[]): Promise<Batch> {
+  public async mergeBatches(
+    batches: SettleableBatch[]
+  ): Promise<SettleableBatch> {
     const serializer = this.blockProofSerializer.getBlockProofSerializer();
 
     const flow = new ReductionTaskFlow(

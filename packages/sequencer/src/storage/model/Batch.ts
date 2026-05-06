@@ -6,8 +6,9 @@ export interface Batch {
   blockHashes: string[];
   height: number;
   createdAt: number;
+}
+
+export interface SettleableBatch extends Batch {
   fromNetworkState: NetworkState;
   toNetworkState: NetworkState;
 }
-
-export interface SettleableBatch extends Batch {}

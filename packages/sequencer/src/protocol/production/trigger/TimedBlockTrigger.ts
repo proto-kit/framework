@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { dependencyFactory, log } from "@proto-kit/common";
+import { dependencyFactory, log, mapSequential } from "@proto-kit/common";
 
 import { closeable, Closeable } from "../../../sequencer/builder/Closeable";
 import { BatchProducerModule } from "../BatchProducerModule";
@@ -15,7 +15,7 @@ import { ensureNotBusy } from "../../../helpers/BusyGuard";
 import { SequencerStartupModule } from "../../../sequencer/SequencerStartupModule";
 import { BlockProductionInstrumentation } from "../../../metrics/BlockProductionInstrumentation";
 import { SequencerCoreModule } from "../../../sequencer/SequencerCoreModule";
-import { Batch } from "../../../storage/model/Batch";
+import { SettleableBatch } from "../../../storage/model/Batch";
 
 import { BlockTriggerBase } from "./BlockTrigger";
 
@@ -122,9 +122,16 @@ export class TimedBlockTrigger
   private async tryProduceSettlement(): Promise<void> {
     const batch = await this.produceBatch();
 
-    let batches: Batch[] | undefined = undefined;
+    let batches: SettleableBatch[] | undefined = undefined;
     if (this.isFirstSettlement) {
-      batches = await this.batchProducerModule?.getSettleableBatches();
+      const rawBatches = await this.batchProducerModule?.getSettleableBatches();
+      if (rawBatches !== undefined) {
+        batches = await mapSequential(
+          rawBatches,
+          async (rawBatch) =>
+            await this.batchProducerModule!.recoverSettleableBatch(rawBatch)
+        );
+      }
       this.isFirstSettlement = false;
     } else if (batch !== undefined) {
       batches = [batch];
