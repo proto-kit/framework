@@ -107,8 +107,8 @@ model Block {
   toMessagesHash              String
   fromStateRoot               String
 
-  beforeBlockStateTransitions Json @db.Json
-  createdAt DateTime @default(now())
+  beforeBlockStateTransitions Json     @db.Json
+  createdAt                   DateTime @default(now())
 
   parentHash String? @unique
   parent     Block?  @relation("Parent", fields: [parentHash], references: [hash])
@@ -124,7 +124,7 @@ model Block {
 model Batch {
   height Int @id
 
-  proof Json @db.Json
+  proof     Json     @db.Json
   createdAt DateTime @default(now())
 
   blocks Block[]
@@ -148,9 +148,9 @@ model BlockResult {
 
 model Settlement {
   // transaction String
-  transactionHash      String @id
+  transactionHash      String   @id
   promisedMessagesHash String
-  createdAt DateTime @default(now())
+  createdAt            DateTime @default(now())
 
   batches Batch[]
 }
@@ -172,4 +172,9 @@ model IncomingMessageBatch {
   toMessageHash   String
 
   messages IncomingMessageBatchTransaction[]
+}
+
+model Property {
+  key   String @id
+  value String
 }

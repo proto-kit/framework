@@ -14,6 +14,7 @@ import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStora
 import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
 import { PrismaTransactionStorage } from "./services/prisma/PrismaTransactionStorage";
 import { PrismaLinkedLeafStore } from "./services/prisma/PrismaLinkedLeafStore";
+import { PrismaPropertyStorage } from "./services/prisma/PrismaPropertyStorage";
 
 export interface PrismaDatabaseConfig {
   // Either object-based config or connection string
@@ -94,6 +95,9 @@ export class PrismaDatabaseConnection
       },
       transactionStorage: {
         useClass: PrismaTransactionStorage,
+      },
+      propertyStorage: {
+        useClass: PrismaPropertyStorage,
       },
 
       asyncLinkedLeafStore: {

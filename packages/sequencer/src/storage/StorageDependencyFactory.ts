@@ -9,6 +9,7 @@ import { BlockQueue, BlockStorage } from "./repositories/BlockStorage";
 import { MessageStorage } from "./repositories/MessageStorage";
 import { SettlementStorage } from "./repositories/SettlementStorage";
 import { TransactionStorage } from "./repositories/TransactionStorage";
+import { PropertyStorage } from "./repositories/PropertyStorage";
 
 export interface StorageDependencyMinimumDependencies<
   Module,
@@ -29,6 +30,8 @@ export interface StorageDependencyMinimumDependencies<
 
   asyncTreeStore: DependencyDeclaration<AsyncMerkleTreeStore, Module>;
   unprovenTreeStore: DependencyDeclaration<AsyncMerkleTreeStore, Module>;
+
+  propertyStorage: DependencyDeclaration<PropertyStorage, Module>;
 }
 
 export interface DatabaseDependencyFactory<T> {
