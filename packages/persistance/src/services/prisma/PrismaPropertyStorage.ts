@@ -1,7 +1,7 @@
 import { PropertyStorage } from "@proto-kit/sequencer";
 import { inject } from "tsyringe";
 
-import { PrismaConnection } from "../../PrismaDatabaseConnection";
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 export class PrismaPropertyStorage implements PropertyStorage {
   public constructor(
