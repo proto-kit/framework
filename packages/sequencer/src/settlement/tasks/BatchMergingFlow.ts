@@ -51,7 +51,7 @@ export class BatchMergingFlow {
 
     return {
       proof: await serializer.toJSONProof(result),
-      height: batches[0].height,
+      height: batches.at(-1)!.height,
       blockHashes: batches.flatMap((batch) => batch.blockHashes),
       createdAt: Date.now(),
       fromNetworkState: batches[0].fromNetworkState,
