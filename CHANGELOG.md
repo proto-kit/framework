@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
+- Added RecursiveProofModule [#516](https://github.com/proto-kit/framework/pull/516)
 
 ### Added
 - Added createdAt timestamp to block, batch and settlement models.[#502](https://github.com/proto-kit/framework/pull/502)
