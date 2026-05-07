@@ -147,12 +147,7 @@ export class SettlementModule
     return this.contract;
   }
 
-  public async settleBatch(
-    batches: SettleableBatch[],
-    options: {
-      nonce?: number;
-    } = {}
-  ): Promise<Settlement> {
+  public async settleBatch(batches: SettleableBatch[]): Promise<Settlement> {
     let batch: SettleableBatch;
 
     if (batches.length === 0) {
@@ -178,7 +173,7 @@ export class SettlementModule
           );
 
     const settlement = await tryNTimes(
-      async () => await interaction.settle(batch, options),
+      async () => await interaction.settle(batch),
       3,
       1000
     );

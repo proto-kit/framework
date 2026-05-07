@@ -13,7 +13,6 @@ import {
 } from "../../../settlement/BridgingModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
-import { match, P } from "ts-pattern";
 
 @sequencerModule()
 export class ManualBlockTrigger
