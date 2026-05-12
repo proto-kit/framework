@@ -29,7 +29,7 @@
   "peerDependencies": {
     "@proto-kit/common": "*",
     "@proto-kit/protocol": "*",
-    "o1js": "2.14.0-dev.e1080",
+    "o1js": "2.15.0",
     "tsyringe": "^4.10.0"
   },
   "gitHead": "32f368c2adf45ca3c5e22a7768ecfad469f6ceb8"

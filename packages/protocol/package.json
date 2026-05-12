@@ -25,7 +25,7 @@
   },
   "peerDependencies": {
     "@proto-kit/common": "*",
-    "o1js": "2.14.0-dev.e1080",
+    "o1js": "2.15.0",
     "ts-pattern": "^4.3.0",
     "tsyringe": "^4.10.0"
   },
