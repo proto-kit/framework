@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 
+- Upgraded to o1js 2.15.0 (native prover release) [#517](https://github.com/proto-kit/framework/pull/517)
+
 ## 0.2.0
 
 ### Added
