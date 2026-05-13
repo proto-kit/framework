@@ -38,9 +38,10 @@ export class ReductionTaskFlow<Input, Output> {
     private readonly options: {
       name: string;
       inputLength: number;
-      mappingTask: Task<Input, Output>;
+      mappingTask?: Task<Input, Output>;
       reductionTask: Task<PairTuple<Output>, Output>;
       mergableFunction: (a: Output, b: Output) => boolean;
+      mappingFunction?: (input: Input) => Promise<Output>;
     },
     flowCreator: FlowCreator
   ) {
@@ -202,18 +203,27 @@ export class ReductionTaskFlow<Input, Output> {
     });
   }
 
+  private async handleMappingResult(result: Output) {
+    if (this.options.inputLength === 1) {
+      this.flow.resolve(result);
+    } else {
+      this.flow.state.queue.push(result);
+      await this.resolveReduction();
+    }
+  }
+
   public async pushInput(input: Input) {
-    await this.flow.pushTask(
-      this.options.mappingTask,
-      input,
-      async (result) => {
-        if (this.options.inputLength === 1) {
-          this.flow.resolve(result);
-        } else {
-          this.flow.state.queue.push(result);
-          await this.resolveReduction();
+    if (this.options.mappingTask !== undefined) {
+      await this.flow.pushTask(
+        this.options.mappingTask,
+        input,
+        async (result) => {
+          await this.handleMappingResult(result);
         }
-      }
-    );
+      );
+    } else if (this.options.mappingFunction !== undefined) {
+      const result = await this.options.mappingFunction(input);
+      await this.handleMappingResult(result);
+    }
   }
 }

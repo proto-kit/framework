@@ -12,13 +12,14 @@ import {
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { BatchStorage } from "../../storage/repositories/BatchStorage";
-import { SettleableBatch } from "../../storage/model/Batch";
+import { Batch, SettleableBatch } from "../../storage/model/Batch";
 import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
 import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../../state/lmt/CachedLinkedLeafStore";
 import { ensureNotBusy } from "../../helpers/BusyGuard";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
+import { BlockStorage } from "../../storage/repositories/BlockStorage";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -52,6 +53,7 @@ export class BatchProducerModule extends SequencerModule {
     @inject("AsyncTreeStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
+    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
     @inject("Database")
     private readonly database: Database,
     private readonly batchFlow: BatchFlow,
@@ -95,6 +97,30 @@ export class BatchProducerModule extends SequencerModule {
       //  This needs proper DB-level masking
     }
     return batchWithStateDiff?.batch;
+  }
+
+  public async getSettleableBatches() {
+    return await this.batchStorage.getUnsettledBatches();
+  }
+
+  public async recoverSettleableBatch(batch: Batch) {
+    const firstBlock = await this.blockStorage.getBlock(batch.blockHashes[0]);
+    const lastBlock = await this.blockStorage.getBlock(
+      batch.blockHashes.at(-1)!
+    );
+
+    if (firstBlock === undefined || lastBlock === undefined) {
+      throw new Error("First or last block not found");
+    }
+    const lastBlockResult = await this.blockStorage.getBlockWithResultAt(
+      parseInt(lastBlock.height.toString(), 10)
+    );
+
+    return {
+      ...batch,
+      fromNetworkState: firstBlock.networkState.before,
+      toNetworkState: lastBlockResult!.result.afterNetworkState,
+    };
   }
 
   public async start(): Promise<void> {

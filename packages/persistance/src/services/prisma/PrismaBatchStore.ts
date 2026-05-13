@@ -71,11 +71,7 @@ export class PrismaBatchStore implements BatchStorage {
         height: Prisma.SortOrder.desc,
       },
       include: {
-        blocks: {
-          select: {
-            hash: true,
-          },
-        },
+        blocks: {},
       },
       take: 1,
     });
@@ -84,7 +80,26 @@ export class PrismaBatchStore implements BatchStorage {
     }
     return this.batchMapper.mapIn([
       batch,
-      batch.blocks.map((block) => block.hash),
+      batch.blocks.map(({ hash }) => hash),
     ]);
+  }
+
+  public async getUnsettledBatches(): Promise<Batch[]> {
+    const batches = await this.connection.prismaClient.batch.findMany({
+      include: {
+        blocks: {
+          select: {
+            hash: true,
+          },
+        },
+      },
+      where: {
+        settlement: null,
+      },
+    });
+
+    return batches.map((batch) =>
+      this.batchMapper.mapIn([batch, batch.blocks.map(({ hash }) => hash)])
+    );
   }
 }
