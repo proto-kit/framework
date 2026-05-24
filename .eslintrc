@@ -113,6 +113,21 @@
       "rules": {}
     },
     {
+      "files": ["*"],
+      "excludedFiles": ["index.ts"],
+      "rules": {
+        "padding-line-between-statements": ["error", {
+          "blankLine": "always",
+          "prev": "class",
+          "next": "*"
+        }, {
+          "blankLine": "always",
+          "prev": "export",
+          "next": "*"
+        }]
+      }
+    },
+    {
       "files": ["cli.ts"],
       "rules": {
         // Disable this because of the comment shell thingy in cli.tsx
