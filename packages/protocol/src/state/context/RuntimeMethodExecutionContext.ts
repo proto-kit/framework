@@ -5,7 +5,7 @@ import {
   ProvableMethodExecutionResult,
 } from "@proto-kit/common";
 
-import { StateTransition } from "../../model/StateTransition";
+import type { StateTransition } from "../../model/StateTransition";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
 

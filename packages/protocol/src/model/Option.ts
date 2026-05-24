@@ -8,6 +8,8 @@ import {
   Struct,
 } from "o1js";
 
+import { assert } from "../state/assert/assert";
+
 export class ProvableOption extends Struct({
   isSome: Bool,
   value: Field,
@@ -152,6 +154,15 @@ export class Option<Value> extends OptionBase {
       this.value,
       defaultValue
     );
+  }
+
+  public isNone(): Bool {
+    return this.isSome.not();
+  }
+
+  public unwrap(): Value {
+    assert(this.isSome, "Unwrap called on None option");
+    return this.value;
   }
 
   public toConstant() {
