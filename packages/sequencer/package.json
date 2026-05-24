@@ -33,6 +33,7 @@
     "@types/node": "^20.2.5"
   },
   "dependencies": {
+    "@urql/core": "^4.1.4",
     "ascii-table3": "^0.9.0",
     "compute-gcd": "^1.2.1",
     "lodash-es": "^4.17.21",

@@ -18,7 +18,7 @@ export class ConstantFeeStrategy
   extends SequencerModule<ConstantFeeStrategyConfig>
   implements FeeStrategy
 {
-  getFee(): number {
+  public async getFee(): Promise<number> {
     return this.config.fee ?? DEFAULT_FEE;
   }
 

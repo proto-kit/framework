@@ -428,7 +428,7 @@ export const settlementTestFn = (
             sender: sequencerKey.toPublicKey(),
             memo: "Deploy custom token",
             nonce: nonceCounter++,
-            fee: feeStrategy.getFee(),
+            fee: await feeStrategy.getFee(),
           },
           async () => {
             AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 3);
@@ -497,7 +497,7 @@ export const settlementTestFn = (
             sender: sequencerKey.toPublicKey(),
             memo: "Mint custom token",
             nonce: nonceCounter++,
-            fee: feeStrategy.getFee(),
+            fee: await feeStrategy.getFee(),
           },
           async () => {
             AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 1);
@@ -814,7 +814,7 @@ export const settlementTestFn = (
 
       const amount = BigInt(1e9 * 10);
 
-      const fee = feeStrategy.getFee();
+      const fee = await feeStrategy.getFee();
       const tx = await Mina.transaction(
         {
           sender: userKey.toPublicKey(),

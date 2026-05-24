@@ -33,6 +33,7 @@ export * from "./protocol/baselayer/network-utils/RemoteNetworkUtils";
 export * from "./protocol/baselayer/network-utils/LightnetUtils";
 export * from "./protocol/baselayer/network-utils/LocalBlockchainUtils";
 export * from "./protocol/baselayer/fees/ConstantFeeStrategy";
+export * from "./protocol/baselayer/fees/AdaptiveFeeStrategy";
 export * from "./protocol/production/helpers/UntypedOption";
 export * from "./protocol/production/helpers/UntypedStateTransition";
 export * from "./protocol/production/tasks/TransactionProvingTask";

@@ -253,7 +253,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
         sender: feepayer,
         nonce: nonce,
         memo: `Deploy token bridge for ${truncate(tokenId.toString(), { length: 6 })}`,
-        fee: this.feeStrategy.getFee(),
+        fee: await this.feeStrategy.getFee(),
       },
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 1);
@@ -519,7 +519,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
           sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
-          fee: this.feeStrategy.getFee(),
+          fee: await this.feeStrategy.getFee(),
           memo: "pull state root",
         },
         async () => {
@@ -641,7 +641,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
           sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
-          fee: this.feeStrategy.getFee(),
+          fee: await this.feeStrategy.getFee(),
           memo: "roll up actions",
         },
         async () => {
