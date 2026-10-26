@@ -54,7 +54,6 @@ export default async function (
   signer.config.signer = senderPrivateKey;
 
   Provable.log("debug", {
-    senderPrivateKey,
     senderPublicKey,
     amount,
     tokenId,

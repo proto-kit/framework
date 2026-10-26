@@ -240,7 +240,7 @@ export class MinaTransactionSimulator {
         );
     }
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < state.length; i++) {
       if (state[i].isSome.toBoolean() && account.zkapp !== undefined) {
         const stateIValid = account
           .zkapp!.appState[i].equals(state[i].value)
@@ -276,9 +276,7 @@ export class MinaTransactionSimulator {
 
     if (update.verificationKey.isSome.toBoolean()) {
       (account.zkapp ??= {
-        appState: Array(8)
-          .fill(0)
-          .map(() => Field(0)),
+        appState: update.appState.map(() => Field(0)),
         verificationKey: undefined,
         actionState: Array(5)
           .fill(0)
@@ -299,7 +297,7 @@ export class MinaTransactionSimulator {
   ) {
     if (account.zkapp !== undefined) {
       const { appState } = update;
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < appState.length; i++) {
         if (appState[i].isSome.toBoolean()) {
           account.zkapp.appState[i] = appState[i].value;
         }

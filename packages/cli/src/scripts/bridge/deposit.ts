@@ -77,7 +77,7 @@ export default async function (
 
     Provable.log("Preparing to deposit", {
       tokenId,
-      fromPrivateKey,
+      from: fromPrivateKey.toPublicKey(),
       toPublicKey,
       amount,
       fee,

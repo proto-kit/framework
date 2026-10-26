@@ -79,5 +79,10 @@
   },
   "dependencies": {
     "react-json-view-lite": "^1.4.0"
+  },
+  "overrides": {
+    "mina-fungible-token": {
+      "o1js": "3.1.0"
+    }
   }
 }

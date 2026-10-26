@@ -28,7 +28,7 @@
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
-    "o1js": "2.15.0",
+    "o1js": "3.1.0",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
