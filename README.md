@@ -1,6 +1,6 @@
 <!-- markdownlint-disable -->
 <div align="center">
-  <img src="https://protokit.dev/logo-dark.svg" height="128">
+  <img src="https://protokit.dev/logo-light.svg" height="128">
 </div>
 <div align="center">
 <br />
